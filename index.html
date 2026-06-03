@@ -579,6 +579,11 @@
     <button type="button" class="tab" data-filter="overlap">Overlaps only</button>
   </div>
 
+  <div class="list-options">
+    <button type="button" class="lineup-toggle" id="lineup-toggle" aria-pressed="false">Show unpicked artists</button>
+    <span class="list-options-hint">Toggle artists nobody has marked yes or maybe.</span>
+  </div>
+
   <div class="search-wrap">
     <label class="search-label" for="artist-search">Search artists</label>
     <input type="search" id="artist-search" placeholder="Filter by name…" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
@@ -593,7 +598,7 @@
   </div>
 
   <div class="add-section" id="add-section">
-    <h3 id="add-title">Add an artist</h3>
+    <h3 id="add-title">Update an artist</h3>
     <p class="add-hint" id="add-hint">Start typing an artist from the lineup.</p>
     <div class="add-row">
       <input class="add-input" id="add-name" list="lineup-artists" placeholder="Artist name" autocomplete="off">
@@ -601,14 +606,10 @@
       <select class="add-select" id="add-status" aria-label="Status">
         <option value="yes">Yes</option>
         <option value="maybe">Maybe</option>
+        <option value="no">No</option>
       </select>
-      <button type="button" class="add-btn" id="add-artist">Add</button>
+      <button type="button" class="add-btn" id="add-artist">Update</button>
     </div>
-  </div>
-
-  <div class="list-options">
-    <button type="button" class="lineup-toggle" id="lineup-toggle" aria-pressed="false">Show unpicked artists</button>
-    <span class="list-options-hint">Toggle artists nobody has marked yes or maybe.</span>
   </div>
 
   <div id="list"></div>
@@ -782,7 +783,8 @@ let artists = loadArtists();
 let currentUser = null;
 let showUnpicked = false;
 
-const isMaybeOnly = a => !a.s1 && !a.s2 && !a.s3;
+const hasMaybe = a => [a.m1, a.m2, a.m3].some(Boolean);
+const isMaybeOnly = a => !a.s1 && !a.s2 && !a.s3 && hasMaybe(a);
 const allThreeOnRow = a => a.s1 && a.s2 && a.s3;
 const confirmedCount = a => [a.s1, a.s2, a.s3].filter(Boolean).length;
 const sharedConfirmedOnRow = a => confirmedCount(a) >= 2;
@@ -902,8 +904,8 @@ function setCurrentUser(userId) {
   });
   document.getElementById('add-section').classList.toggle('show', Boolean(currentUser));
   document.getElementById('add-title').textContent = currentUser
-    ? `Add an artist for ${SIBLINGS[currentUser - 1].name}`
-    : 'Add an artist';
+    ? `Update an artist for ${SIBLINGS[currentUser - 1].name}`
+    : 'Update an artist';
   renderCurrent();
 }
 
