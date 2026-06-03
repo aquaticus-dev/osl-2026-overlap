@@ -122,6 +122,8 @@
     letter-spacing: 0.05em;
   }
 
+  .leg-count { color: var(--text); font-weight: 600; }
+
   .dot {
     width: 9px; height: 9px;
     border-radius: 50%;
@@ -311,10 +313,12 @@
   <div class="stats" id="summary"></div>
 
   <div class="legend">
-    <div class="leg"><div class="dot" style="background:#a04068"></div> Zach only</div>
-    <div class="leg"><div class="dot" style="background:#2e4a8a"></div> Jonas only</div>
-    <div class="leg"><div class="dot" style="background:#1e6040"></div> Zoe only</div>
+    <div class="leg"><div class="dot" style="background:#a04068"></div> Zach <span class="leg-count" id="s1-count"></span></div>
+    <div class="leg"><div class="dot" style="background:#2e4a8a"></div> Jonas <span class="leg-count" id="s2-count"></span></div>
+    <div class="leg"><div class="dot" style="background:#1e6040"></div> Zoe <span class="leg-count" id="s3-count"></span></div>
     <div class="leg"><div class="dot" style="background:#888"></div> Maybe (solo)</div>
+    <div class="leg"><div class="dot" style="background:#c4622a"></div> Two-person overlap</div>
+    <div class="leg"><div class="dot" style="background:#d6a82a"></div> Three-person overlap</div>
   </div>
 
   <div class="tabs" id="tabs">
@@ -411,6 +415,13 @@ const sortSingles = (a, b) => {
   return aMix - bMix || siblingRank(a) - siblingRank(b) || a.pos - b.pos;
 };
 const sortMaybes = (a, b) => siblingRank(a) - siblingRank(b) || a.pos - b.pos;
+const sharedPairRank = a => {
+  if (a.s1 && a.s2) return 12;
+  if (a.s1 && a.s3) return 13;
+  if (a.s2 && a.s3) return 23;
+  return 99;
+};
+const sortShared = (a, b) => sharedPairRank(a) - sharedPairRank(b) || a.pos - b.pos;
 
 const countSiblingsOnRow = a =>
   [a.s1 || a.m1, a.s2 || a.m2, a.s3 || a.m3].filter(Boolean).length;
@@ -498,7 +509,7 @@ function show(filter, tabBtn) {
     artDiv.className = 'artists';
 
     const triples   = pool.filter(allThreeOnRow).sort((a,b) => a.pos - b.pos);
-    const overlaps  = pool.filter(a => sharedConfirmedOnRow(a) && !allThreeOnRow(a)).sort((a,b) => a.pos - b.pos);
+    const overlaps  = pool.filter(a => sharedConfirmedOnRow(a) && !allThreeOnRow(a)).sort(sortShared);
     const singles   = pool.filter(a => (a.s1 || a.s2 || a.s3) && !sharedConfirmedOnRow(a)).sort(sortSingles);
     const maybes    = pool.filter(isMaybeOnly).sort(sortMaybes);
 
@@ -532,23 +543,24 @@ function show(filter, tabBtn) {
 
 function buildSummary() {
   const triple = artists.filter(allThreeOnRow).length;
-  const shared = artists.filter(sharedConfirmedOnRow).length;
+  const twoOfThree = artists.filter(a => confirmedCount(a) === 2).length;
   const s1     = artists.filter(a => a.s1).length;
   const s2     = artists.filter(a => a.s2).length;
   const s3     = artists.filter(a => a.s3).length;
   const grid = document.getElementById('summary');
+  grid.innerHTML = '';
   [
-    [triple, 'All three'],
-    [shared, 'Shared picks'],
-    [s1, `${S1} yes`],
-    [s2, `${S2} yes`],
-    [s3, `${S3} yes`],
+    [triple, 'Three-person overlaps'],
+    [twoOfThree, 'Two-person overlaps'],
   ].forEach(([n,l]) => {
     const s = document.createElement('div');
     s.className = 'stat';
     s.innerHTML = `<div class="stat-num">${n}</div><div class="stat-label">${l}</div>`;
     grid.appendChild(s);
   });
+  document.getElementById('s1-count').textContent = `(${s1})`;
+  document.getElementById('s2-count').textContent = `(${s2})`;
+  document.getElementById('s3-count').textContent = `(${s3})`;
 }
 
 document.getElementById('tabs').addEventListener('click', e => {
