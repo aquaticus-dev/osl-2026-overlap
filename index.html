@@ -148,7 +148,11 @@
     gap: 8px;
     align-items: center;
     flex-wrap: wrap;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: rgba(255,255,255,0.02);
   }
 
   .who-label {
@@ -251,6 +255,10 @@
     background: var(--triple-bg);
   }
 
+  .artist.editing {
+    align-items: stretch;
+  }
+
   .artist-name {
     flex: 1;
     font-size: 0.95rem;
@@ -287,18 +295,38 @@
 
   .edit-controls {
     display: flex;
-    gap: 5px;
-    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: rgba(0,0,0,0.18);
+    flex-wrap: nowrap;
+  }
+
+  .edit-panel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .edit-label {
+    color: var(--muted);
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
   }
 
   .vote-btn {
-    padding: 5px 10px;
-    border-radius: 999px;
+    padding: 6px 10px;
+    min-width: 54px;
+    border-radius: 7px;
     border: 1px solid var(--border);
-    background: transparent;
+    background: rgba(255,255,255,0.03);
     color: var(--muted);
     font-family: inherit;
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.03em;
@@ -308,7 +336,7 @@
 
   .vote-btn:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
   .vote-btn.yes.active { background: #102410; border-color: #3f8f4e; color: #82d991; }
-  .vote-btn.maybe.active { background: var(--maybe-bg); border-color: var(--maybe-border); color: var(--maybe-text); }
+  .vote-btn.maybe.active { background: #242018; border-color: #8a6a20; color: #d8b45c; }
   .vote-btn.no.active { background: #2a0a0a; border-color: #8a2020; color: #e05050; }
 
   .search-wrap {
@@ -469,7 +497,10 @@
     }
     .artist-name { flex: 1 1 100%; font-size: 1rem; }
     .note { flex: 1 1 100%; margin-right: 0; }
-    .badges, .edit-controls { flex: 1 1 100%; }
+    .badges, .edit-panel { flex: 1 1 100%; }
+    .edit-panel { align-items: flex-start; flex-direction: column; gap: 6px; margin-left: 0; }
+    .edit-controls { width: 100%; }
+    .vote-btn { flex: 1; }
     .save-banner { left: 1rem; right: 1rem; justify-content: space-between; }
   }
 </style>
@@ -493,14 +524,6 @@
     <div class="leg"><div class="dot" style="background:#888"></div> Maybe (solo)</div>
   </div>
 
-  <div class="who-bar" id="who-bar" aria-label="Edit picks">
-    <span class="who-label">Edit as:</span>
-    <button type="button" class="who-btn" data-user="1">Zach</button>
-    <button type="button" class="who-btn" data-user="2">Jonas</button>
-    <button type="button" class="who-btn" data-user="3">Zoe</button>
-    <button type="button" class="who-btn active" data-user="">View all</button>
-  </div>
-
   <div class="tabs" id="tabs">
     <button type="button" class="tab active" data-filter="all">All days</button>
     <button type="button" class="tab" data-filter="fri">Friday</button>
@@ -514,8 +537,16 @@
     <input type="search" id="artist-search" placeholder="Filter by name…" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
   </div>
 
+  <div class="who-bar" id="who-bar" aria-label="Edit picks">
+    <span class="who-label">Edit as:</span>
+    <button type="button" class="who-btn" data-user="1">Zach</button>
+    <button type="button" class="who-btn" data-user="2">Jonas</button>
+    <button type="button" class="who-btn" data-user="3">Zoe</button>
+    <button type="button" class="who-btn active" data-user="">View all</button>
+  </div>
+
   <div class="add-section" id="add-section">
-    <h3>Add an artist for the selected sibling</h3>
+    <h3 id="add-title">Add an artist</h3>
     <p class="add-hint" id="add-hint">Start typing an artist from the lineup.</p>
     <div class="add-row">
       <input class="add-input" id="add-name" list="lineup-artists" placeholder="Artist name" autocomplete="off">
@@ -540,53 +571,101 @@
 <script>
 const DEFAULT_ARTISTS = [
   // FRIDAY (poster order)
-  { name:"Charli XCX",       day:"fri", s1:true,  s2:true,  s3:true,  pos:1  },
-  { name:"Griztronics",      day:"fri", s2:false, s3:true,  pos:3  },
-  { name:"Labrinth",         day:"fri", s2:true,  s3:false, pos:4,  m3:true },
-  { name:"Modest Mouse",     day:"fri", s2:false, s3:true,  pos:7,  m2:true },
-  { name:"Wet Leg",          day:"fri", s2:true,  s3:false, pos:8,  m3:true },
-  { name:"Tinashe",          day:"fri", s2:true,  s3:true,  pos:9  },
-  { name:"Sierra Ferrell",   day:"fri", s2:false, s3:false, pos:10, m2:true },
-  { name:"Hyperbeam",        day:"fri", s2:false, s3:true,  pos:11 },
-  { name:"KI/KI",            day:"fri", s2:false, s3:true,  pos:14 },
-  { name:"Alleycvt",         day:"fri", s2:false, s3:true,  pos:16 },
-  { name:"Goldie Boutilier", day:"fri", s2:false, s3:true,  pos:19 },
-  { name:"Billie Marten",    day:"fri", s2:false, s3:false, pos:22, m2:true },
-  { name:"Chezile",          day:"fri", s2:true,  s3:false, pos:26 },
-  { name:"NEZZA",            day:"fri", s2:true,  s3:false, pos:28 },
+  { name:"Charli XCX",                         day:"fri", s1:true,  s2:true,  s3:true,  pos:1  },
+  { name:"Turnstile",                          day:"fri", s1:false, s2:false, s3:false, pos:2  },
+  { name:"GRiZTRONICS (Subtronics + GRiZ)",    day:"fri", s1:false, s2:false, s3:true,  pos:3  },
+  { name:"Labrinth",                           day:"fri", s1:false, s2:true,  s3:false, pos:4,  m3:true },
+  { name:"GloRilla",                           day:"fri", s1:false, s2:false, s3:false, pos:5  },
+  { name:"Geese",                              day:"fri", s1:false, s2:false, s3:false, pos:6  },
+  { name:"Clipse",                             day:"fri", s1:false, s2:false, s3:false, pos:7  },
+  { name:"Modest Mouse",                       day:"fri", s1:false, s2:false, s3:true,  pos:8,  m2:true },
+  { name:"Wet Leg",                            day:"fri", s1:false, s2:true,  s3:false, pos:9,  m3:true },
+  { name:"Sierra Ferrell",                     day:"fri", s1:false, s2:false, s3:false, pos:10, m2:true },
+  { name:"Tinashe",                            day:"fri", s1:false, s2:true,  s3:true,  pos:11 },
+  { name:"Odd Mob & OMNOM present HYPERBEAM",  day:"fri", s1:false, s2:false, s3:true,  pos:12 },
+  { name:"The Story So Far",                   day:"fri", s1:false, s2:false, s3:false, pos:13 },
+  { name:"¥ØU$UK€ ¥UK1MAT$U",                  day:"fri", s1:false, s2:false, s3:false, pos:14 },
+  { name:"KI/KI",                              day:"fri", s1:false, s2:false, s3:true,  pos:15 },
+  { name:"Durand Bernarr",                     day:"fri", s1:false, s2:false, s3:false, pos:16 },
+  { name:"ALLEYCVT",                           day:"fri", s1:false, s2:false, s3:true,  pos:17 },
+  { name:"Die Spitz",                          day:"fri", s1:false, s2:false, s3:false, pos:18 },
+  { name:"MPH",                                day:"fri", s1:false, s2:false, s3:false, pos:19 },
+  { name:"Goldie Boutilier",                   day:"fri", s1:false, s2:false, s3:true,  pos:20 },
+  { name:"Dylan Brady",                        day:"fri", s1:false, s2:false, s3:false, pos:21 },
+  { name:"Tobiahs",                            day:"fri", s1:false, s2:false, s3:false, pos:22 },
+  { name:"Billie Marten",                      day:"fri", s1:false, s2:false, s3:false, pos:23, m2:true },
+  { name:"Faouzia",                            day:"fri", s1:false, s2:false, s3:false, pos:24 },
+  { name:"Luke Alessi",                        day:"fri", s1:false, s2:false, s3:false, pos:25 },
+  { name:"Bad Nerves",                         day:"fri", s1:false, s2:false, s3:false, pos:26 },
+  { name:"Chezile",                            day:"fri", s1:false, s2:true,  s3:false, pos:27 },
+  { name:"Sawyer Hill",                        day:"fri", s1:false, s2:false, s3:false, pos:28 },
+  { name:"NEZZA",                              day:"fri", s1:false, s2:true,  s3:false, pos:29 },
+  { name:"Vertigo",                            day:"fri", s1:false, s2:false, s3:false, pos:30 },
 
   // SATURDAY (poster order)
-  { name:"The Strokes",      day:"sat", s1:true,  s2:false, s3:true,  pos:1,  m2:true, note:"Jonas maybe (relisten)" },
-  { name:"The XX",           day:"sat", s1:true,  s2:true,  s3:false, pos:2  },
-  { name:"Djo",              day:"sat", s1:true,  s2:true,  s3:false, pos:3  },
-  { name:"Dijon",            day:"sat", s2:false, s3:true,  pos:3  },
-  { name:"PinkPantheress",   day:"sat", s2:true,  s3:true,  pos:4  },
-  { name:"Ethel Cain",       day:"sat", s2:true,  s3:false, pos:5  },
-  { name:"Lucy Dacus",       day:"sat", s2:false, s3:false, pos:6,  m2:true },
-  { name:"Malcom Todd",      day:"sat", s2:false, s3:true,  pos:7,  m2:true },
-  { name:"Lane 8",           day:"sat", s2:true,  s3:false, pos:8  },
-  { name:"It's Murph",       day:"sat", s2:false, s3:true,  pos:10 },
-  { name:"Ben Böhmer",       day:"sat", s1:true,  s2:true,  s3:false, pos:12, note:"instrumental set" },
-  { name:"Laszewo",          day:"sat", s2:false, s3:true,  pos:14, m2:true, note:"Zoe: seen many times, still loves them" },
-  { name:"Sienna Spiro",     day:"sat", s2:false, s3:true,  pos:15 },
-  { name:"Sultan + Shepard", day:"sat", s2:true,  s3:false, pos:16, note:"low fi set" },
-  { name:"Haute & Freddy",   day:"sat", s2:true,  s3:false, pos:18 },
-  { name:"Red Leather",      day:"sat", s2:false, s3:false, pos:29, m2:true },
-  { name:"Destin Conrad",    day:"sat", s2:false, s3:false, pos:31, m2:true },
+  { name:"The Strokes",          day:"sat", s1:true,  s2:false, s3:true,  pos:1,  m2:true, note:"Jonas maybe (relisten)" },
+  { name:"The xx",               day:"sat", s1:true,  s2:true,  s3:false, pos:2  },
+  { name:"Djo",                  day:"sat", s1:true,  s2:true,  s3:false, pos:3  },
+  { name:"PinkPantheress",       day:"sat", s1:false, s2:true,  s3:true,  pos:4  },
+  { name:"Dijon",                day:"sat", s1:false, s2:false, s3:true,  pos:5  },
+  { name:"Ethel Cain",           day:"sat", s1:false, s2:true,  s3:false, pos:6  },
+  { name:"Lucy Dacus",           day:"sat", s1:false, s2:false, s3:false, pos:7,  m2:true },
+  { name:"Malcolm Todd",         day:"sat", s1:false, s2:false, s3:true,  pos:8,  m2:true },
+  { name:"Lane 8",               day:"sat", s1:false, s2:true,  s3:false, pos:9  },
+  { name:"Snow Strippers",       day:"sat", s1:false, s2:false, s3:false, pos:10 },
+  { name:"it's murph",           day:"sat", s1:false, s2:false, s3:true,  pos:11 },
+  { name:"Audrey Hobert",        day:"sat", s1:false, s2:false, s3:false, pos:12 },
+  { name:"Ben Böhmer",           day:"sat", s1:true,  s2:true,  s3:false, pos:13, note:"instrumental set" },
+  { name:"DJ Trixie Mattel",     day:"sat", s1:false, s2:false, s3:false, pos:14 },
+  { name:"Łaszewo",              day:"sat", s1:false, s2:false, s3:true,  pos:15, m2:true, note:"Zoe: seen many times, still loves them" },
+  { name:"SIENNA SPIRO",         day:"sat", s1:false, s2:false, s3:true,  pos:16 },
+  { name:"Sultan + Shepard",     day:"sat", s1:false, s2:true,  s3:false, pos:17, note:"low fi set" },
+  { name:"Silvana Estrada",      day:"sat", s1:false, s2:false, s3:false, pos:18 },
+  { name:"Haute & Freddy",       day:"sat", s1:false, s2:true,  s3:false, pos:19 },
+  { name:"Yard Act",             day:"sat", s1:false, s2:false, s3:false, pos:20 },
+  { name:"Wunderhorse",          day:"sat", s1:false, s2:false, s3:false, pos:21 },
+  { name:"camoufly",             day:"sat", s1:false, s2:false, s3:false, pos:22 },
+  { name:"Bandalos Chinos",      day:"sat", s1:false, s2:false, s3:false, pos:23 },
+  { name:"After",                day:"sat", s1:false, s2:false, s3:false, pos:24 },
+  { name:"RIO KOSTA",            day:"sat", s1:false, s2:false, s3:false, pos:25 },
+  { name:"Automatic",            day:"sat", s1:false, s2:false, s3:false, pos:26 },
+  { name:"1-800 GIRLS",          day:"sat", s1:false, s2:false, s3:false, pos:27 },
+  { name:"Red Leather",          day:"sat", s1:false, s2:false, s3:false, pos:28, m2:true },
+  { name:"Racing Mount Pleasant", day:"sat", s1:false, s2:false, s3:false, pos:29 },
+  { name:"RYMAN",                day:"sat", s1:false, s2:false, s3:false, pos:30 },
+  { name:"bad juuju",            day:"sat", s1:false, s2:false, s3:false, pos:31 },
 
   // SUNDAY (poster order)
-  { name:"Rufus du Sol",         day:"sun", s1:true,  s2:true,  s3:true,  pos:1  },
-  { name:"Empire of the Sun",    day:"sun", s1:true,  s2:true,  s3:true,  pos:3  },
+  { name:"RÜFÜS DU SOL",         day:"sun", s1:true,  s2:true,  s3:true,  pos:1  },
+  { name:"Baby Keem",            day:"sun", s1:false, s2:false, s3:false, pos:2  },
+  { name:"Empire Of The Sun",    day:"sun", s1:true,  s2:true,  s3:true,  pos:3  },
   { name:"Death Cab for Cutie",  day:"sun", s1:true,  s2:true,  s3:false, pos:4  },
-  { name:"Disco Lines",          day:"sun", s2:false, s3:true,  pos:5,  m2:true },
-  { name:"Mariah the Scientist", day:"sun", s2:false, s3:false, pos:6,  m2:true },
-  { name:"Not for Radio",        day:"sun", s2:false, s3:false, pos:7,  m2:true },
-  { name:"The Temper Trap",      day:"sun", s1:true,  s2:true,  s3:false, pos:9  },
-  { name:"Jade",                 day:"sun", s2:true,  s3:false, pos:10 },
-  { name:"Boys Noize",           day:"sun", s2:false, s3:true,  pos:12 },
-  { name:"Balu Brigada",         day:"sun", s2:true,  s3:true,  pos:15, note:"Zoe: VERY excited!" },
-  { name:"Marlon Funaki",        day:"sun", s2:false, s3:false, pos:23, m2:true },
-  { name:"Night Tapes",          day:"sun", s2:true,  s3:false, pos:24 },
+  { name:"Disco Lines",          day:"sun", s1:false, s2:false, s3:true,  pos:5,  m2:true },
+  { name:"Mariah the Scientist", day:"sun", s1:false, s2:false, s3:false, pos:6,  m2:true },
+  { name:"Not for Radio",        day:"sun", s1:false, s2:false, s3:false, pos:7,  m2:true },
+  { name:"Boris Brejcha",        day:"sun", s1:false, s2:false, s3:false, pos:8  },
+  { name:"JADE",                 day:"sun", s1:false, s2:true,  s3:false, pos:9  },
+  { name:"The Temper Trap",      day:"sun", s1:true,  s2:true,  s3:false, pos:10 },
+  { name:"kwn",                  day:"sun", s1:false, s2:false, s3:false, pos:11 },
+  { name:"Boys Noize",           day:"sun", s1:false, s2:false, s3:true,  pos:12 },
+  { name:"DESTIN CONRAD",        day:"sun", s1:false, s2:false, s3:false, pos:13, m2:true },
+  { name:"Kingfishr",            day:"sun", s1:false, s2:false, s3:false, pos:14 },
+  { name:"Balu Brigada",         day:"sun", s1:false, s2:true,  s3:true,  pos:15, note:"Zoe: VERY excited!" },
+  { name:"Frost Children",       day:"sun", s1:false, s2:false, s3:false, pos:16 },
+  { name:"Miss Monique",         day:"sun", s1:false, s2:false, s3:false, pos:17 },
+  { name:"Carlita",              day:"sun", s1:false, s2:false, s3:false, pos:18 },
+  { name:"Momma",                day:"sun", s1:false, s2:false, s3:false, pos:19 },
+  { name:"Amble",                day:"sun", s1:false, s2:false, s3:false, pos:20 },
+  { name:"Sports",               day:"sun", s1:false, s2:false, s3:false, pos:21 },
+  { name:"Infinity Song",        day:"sun", s1:false, s2:false, s3:false, pos:22 },
+  { name:"Marlon Funaki",        day:"sun", s1:false, s2:false, s3:false, pos:23, m2:true },
+  { name:"Night Tapes",          day:"sun", s1:false, s2:true,  s3:false, pos:24 },
+  { name:"X CLUB.",              day:"sun", s1:false, s2:false, s3:false, pos:25 },
+  { name:"Jim Legxacy",          day:"sun", s1:false, s2:false, s3:false, pos:26 },
+  { name:"Sosocamo",             day:"sun", s1:false, s2:false, s3:false, pos:27 },
+  { name:"Day We Ran",           day:"sun", s1:false, s2:false, s3:false, pos:28 },
+  { name:"Cruz Beckham",         day:"sun", s1:false, s2:false, s3:false, pos:29 },
+  { name:"Britton",              day:"sun", s1:false, s2:false, s3:false, pos:30 },
 ];
 
 const STORAGE_KEY = 'osl2026-overlap-picks';
@@ -598,10 +677,52 @@ const SIBLINGS = [
   { id: 2, name: S2 },
   { id: 3, name: S3 },
 ];
+
+function normalizeName(value) {
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[ł]/g, 'l')
+    .replace(/[ø]/g, 'o')
+    .replace(/[’‘]/g, "'")
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+const ARTIST_ALIASES = {
+  'griztronics': normalizeName('GRiZTRONICS (Subtronics + GRiZ)'),
+  'hyperbeam': normalizeName('Odd Mob & OMNOM present HYPERBEAM'),
+  'odd mob omnom present hyperbeam': normalizeName('Odd Mob & OMNOM present HYPERBEAM'),
+  'laszewo': normalizeName('Łaszewo'),
+  'malcom todd': normalizeName('Malcolm Todd'),
+  'rufus du sol': normalizeName('RÜFÜS DU SOL'),
+};
+
+const artistKey = name => ARTIST_ALIASES[normalizeName(name)] || normalizeName(name);
+
 const loadArtists = () => {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const savedArtists = JSON.parse(saved);
+      const merged = DEFAULT_ARTISTS.map(a => ({...a}));
+      const byName = new Map(merged.map((a, i) => [artistKey(a.name), i]));
+      savedArtists.forEach(savedArtist => {
+        const idx = byName.get(artistKey(savedArtist.name));
+        if (idx === undefined) {
+          merged.push({...savedArtist});
+          return;
+        }
+        ['s1','s2','s3','m1','m2','m3'].forEach(key => {
+          if (key in savedArtist) merged[idx][key] = savedArtist[key];
+        });
+        if (savedArtist.note && !merged[idx].note) merged[idx].note = savedArtist.note;
+      });
+      return merged;
+    }
   } catch (e) {}
   return DEFAULT_ARTISTS.map(a => ({...a}));
 };
@@ -640,6 +761,7 @@ const sortShared = (a, b) => sharedPairRank(a) - sharedPairRank(b) || a.pos - b.
 
 const countSiblingsOnRow = a =>
   [a.s1 || a.m1, a.s2 || a.m2, a.s3 || a.m3].filter(Boolean).length;
+const hasAnyInterest = a => [a.s1, a.s2, a.s3, a.m1, a.m2, a.m3].some(Boolean);
 
 /** Grey maybe when solo interest on row (one sibling flag total, no other s* yes). */
 const useGreyMaybe = (a, sib) => {
@@ -660,22 +782,16 @@ const escapeHtml = value => String(value).replace(/[&<>"']/g, ch => ({
   "'": '&#39;',
 }[ch]));
 
-const normalizeName = value => String(value)
-  .trim()
-  .toLowerCase()
-  .normalize('NFD')
-  .replace(/[\u0300-\u036f]/g, '');
-
 function findLineupArtist(name) {
-  const normalized = normalizeName(name);
+  const normalized = artistKey(name);
   if (!normalized) return null;
-  return artists.find(a => normalizeName(a.name) === normalized)
-    || DEFAULT_ARTISTS.find(a => normalizeName(a.name) === normalized)
+  return artists.find(a => artistKey(a.name) === normalized)
+    || DEFAULT_ARTISTS.find(a => artistKey(a.name) === normalized)
     || null;
 }
 
 function buildLineupOptions() {
-  const options = [...new Map([...artists, ...DEFAULT_ARTISTS].map(a => [normalizeName(a.name), a.name])).values()]
+  const options = [...new Map([...artists, ...DEFAULT_ARTISTS].map(a => [artistKey(a.name), a.name])).values()]
     .sort((a, b) => a.localeCompare(b));
   document.getElementById('lineup-artists').innerHTML = options
     .map(name => `<option value="${escapeHtml(name)}"></option>`)
@@ -726,6 +842,9 @@ function setCurrentUser(userId) {
     btn.classList.toggle('active', btn.dataset.user === (userId || ''));
   });
   document.getElementById('add-section').classList.toggle('show', Boolean(currentUser));
+  document.getElementById('add-title').textContent = currentUser
+    ? `Add an artist for ${SIBLINGS[currentUser - 1].name}`
+    : 'Add an artist';
   renderCurrent();
 }
 
@@ -754,7 +873,7 @@ function addArtist() {
   const day = lineupArtist.day;
   const status = document.getElementById('add-status').value;
   const existingIndex = artists.findIndex(a => (
-    a.day === day && normalizeName(a.name) === normalizeName(lineupArtist.name)
+    a.day === day && artistKey(a.name) === artistKey(lineupArtist.name)
   ));
   const idx = existingIndex >= 0 ? existingIndex : artists.length;
 
@@ -784,22 +903,23 @@ function buildRow(a) {
   const el = document.createElement('div');
   el.className = 'artist'
     + (sharedConfirmedOnRow(a) ? ' overlap' : '')
-    + (allThreeOnRow(a) ? ' triple' : '');
+    + (allThreeOnRow(a) ? ' triple' : '')
+    + (currentUser ? ' editing' : '');
 
   const parts = [];
   if (a.s1) parts.push(`<span class="badge b1">${S1}</span>`);
   if (a.s2) parts.push(`<span class="badge b2">${S2}</span>`);
   if (a.s3) parts.push(`<span class="badge b3">${S3}</span>`);
   if (a.m1) {
-    const t = a.s1 ? `${S1} also maybe` : `${S1} maybe`;
+    const t = `${S1} (maybe)`;
     parts.push(`<span class="badge ${maybeBadgeClass(a, 1)}">${t}</span>`);
   }
   if (a.m2) {
-    const t = a.s2 ? `${S2} also maybe` : `${S2} maybe`;
+    const t = `${S2} (maybe)`;
     parts.push(`<span class="badge ${maybeBadgeClass(a, 2)}">${t}</span>`);
   }
   if (a.m3) {
-    const t = a.s3 ? `${S3} also maybe` : `${S3} maybe`;
+    const t = `${S3} (maybe)`;
     parts.push(`<span class="badge ${maybeBadgeClass(a, 3)}">${t}</span>`);
   }
 
@@ -807,6 +927,10 @@ function buildRow(a) {
   el.innerHTML = `<span class="artist-name">${escapeHtml(a.name)}</span>${a.note ? `<span class="note">${escapeHtml(a.note)}</span>` : ''}<div class="badges">${badges}</div>`;
 
   if (currentUser && Number.isInteger(a._idx)) {
+    const editPanel = document.createElement('div');
+    editPanel.className = 'edit-panel';
+    editPanel.innerHTML = '<span class="edit-label">Your pick</span>';
+
     const controls = document.createElement('div');
     controls.className = 'edit-controls';
     [
@@ -821,7 +945,8 @@ function buildRow(a) {
       btn.addEventListener('click', () => setVote(a._idx, currentUser, status));
       controls.appendChild(btn);
     });
-    el.appendChild(controls);
+    editPanel.appendChild(controls);
+    el.appendChild(editPanel);
   }
 
   return el;
@@ -848,7 +973,6 @@ function show(filter, tabBtn) {
     if (filter === 'overlap') pool = pool.filter(sharedConfirmedOnRow);
     pool = pool.filter(matchesSearch);
     if (!pool.length) return;
-    anyContent = true;
 
     const section = document.createElement('div');
     section.className = 'day-section';
@@ -865,24 +989,37 @@ function show(filter, tabBtn) {
     const overlaps  = pool.filter(a => sharedConfirmedOnRow(a) && !allThreeOnRow(a)).sort(sortShared);
     const singles   = pool.filter(a => (a.s1 || a.s2 || a.s3) && !sharedConfirmedOnRow(a)).sort(sortSingles);
     const maybes    = pool.filter(isMaybeOnly).sort(sortMaybes);
+    const lineup    = currentUser ? pool.filter(a => !hasAnyInterest(a)).sort((a,b) => a.pos - b.pos) : [];
+    let sectionContent = false;
 
     if (triples.length) {
       if (filter !== 'overlap') addSubLabel(artDiv, '↓ all three going');
       triples.forEach(a => artDiv.appendChild(buildRow(a)));
+      sectionContent = true;
     }
     if (overlaps.length) {
       if (filter !== 'overlap') addSubLabel(artDiv, '↓ shared picks');
       overlaps.forEach(a => artDiv.appendChild(buildRow(a)));
+      sectionContent = true;
     }
     if (singles.length) {
       addSubLabel(artDiv, singles.some(a => a.s1) ? '↓ not everyone' : '↓ one of them');
       singles.forEach(a => artDiv.appendChild(buildRow(a)));
+      sectionContent = true;
     }
     if (maybes.length) {
       addSubLabel(artDiv, '↓ maybe');
       maybes.forEach(a => artDiv.appendChild(buildRow(a)));
+      sectionContent = true;
+    }
+    if (lineup.length && filter !== 'overlap') {
+      addSubLabel(artDiv, '↓ lineup');
+      lineup.forEach(a => artDiv.appendChild(buildRow(a)));
+      sectionContent = true;
     }
 
+    if (!sectionContent) return;
+    anyContent = true;
     section.appendChild(artDiv);
     list.appendChild(section);
   });
