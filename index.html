@@ -143,6 +143,43 @@
     flex-shrink: 0;
   }
 
+  .who-bar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+  }
+
+  .who-label {
+    color: var(--muted);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-right: 4px;
+  }
+
+  .who-btn {
+    padding: 8px 16px;
+    min-height: 40px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .who-btn:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+  .who-btn.active { color: var(--text); border-color: rgba(255,255,255,0.25); background: var(--surface2); }
+  .who-btn[data-user="1"].active { background: var(--s1-bg); border-color: var(--s1-border); color: var(--s1-text); }
+  .who-btn[data-user="2"].active { background: var(--s2-bg); border-color: var(--s2-border); color: var(--s2-text); }
+  .who-btn[data-user="3"].active { background: var(--s3-bg); border-color: var(--s3-border); color: var(--s3-text); }
+
   .tabs {
     display: flex;
     gap: 8px;
@@ -248,6 +285,32 @@
   .b3    { background: var(--s3-bg);      color: var(--s3-text);      border: 1px solid var(--s3-border); }
   .bmaybe{ background: var(--maybe-bg);   color: var(--maybe-text);   border: 1px solid var(--maybe-border); }
 
+  .edit-controls {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+
+  .vote-btn {
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .vote-btn:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+  .vote-btn.yes.active { background: #102410; border-color: #3f8f4e; color: #82d991; }
+  .vote-btn.maybe.active { background: var(--maybe-bg); border-color: var(--maybe-border); color: var(--maybe-text); }
+  .vote-btn.no.active { background: #2a0a0a; border-color: #8a2020; color: #e05050; }
+
   .search-wrap {
     margin-bottom: 1.5rem;
   }
@@ -290,6 +353,93 @@
     padding: 1rem 0;
   }
 
+  .add-section {
+    display: none;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
+  .add-section.show { display: block; }
+
+  .add-section h3 {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.75rem;
+  }
+
+  .add-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .add-input,
+  .add-select {
+    min-height: 40px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #111;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.9rem;
+  }
+
+  .add-input { flex: 1 1 180px; }
+
+  .add-input:focus,
+  .add-select:focus {
+    outline: none;
+    border-color: rgba(255,255,255,0.2);
+  }
+
+  .add-btn {
+    min-height: 40px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #0e0e0e;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .save-banner {
+    display: none;
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 10;
+    align-items: center;
+    gap: 10px;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 0.85rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  }
+
+  .save-banner.show { display: flex; }
+
+  .save-btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #0e0e0e;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
   @media (max-width: 600px) {
     header { padding: 2rem 1rem 1.5rem; margin-bottom: 1.5rem; }
     .container { padding: 0 1rem; }
@@ -297,9 +447,13 @@
     .stat { padding: 0.85rem 1rem; }
     .stat-num { font-size: 2rem; }
     .legend { gap: 0.75rem; margin-bottom: 1.5rem; }
+    .who-bar { gap: 6px; margin-bottom: 1.25rem; }
+    .who-btn { flex: 1 1 auto; padding: 8px 10px; }
     .tabs { gap: 6px; margin-bottom: 1.25rem; }
     .tab { font-size: 0.78rem; padding: 10px 14px; }
     .search-wrap { margin-bottom: 1.25rem; }
+    .add-row { flex-direction: column; }
+    .add-input, .add-select, .add-btn { width: 100%; }
     .day-label { font-size: 1.6rem; }
     .artist {
       flex-wrap: wrap;
@@ -309,7 +463,8 @@
     }
     .artist-name { flex: 1 1 100%; font-size: 1rem; }
     .note { flex: 1 1 100%; margin-right: 0; }
-    .badges { flex: 1 1 100%; }
+    .badges, .edit-controls { flex: 1 1 100%; }
+    .save-banner { left: 1rem; right: 1rem; justify-content: space-between; }
   }
 </style>
 </head>
@@ -332,6 +487,14 @@
     <div class="leg"><div class="dot" style="background:#888"></div> Maybe (solo)</div>
   </div>
 
+  <div class="who-bar" id="who-bar" aria-label="Edit picks">
+    <span class="who-label">Edit as:</span>
+    <button type="button" class="who-btn" data-user="1">Zach</button>
+    <button type="button" class="who-btn" data-user="2">Jonas</button>
+    <button type="button" class="who-btn" data-user="3">Zoe</button>
+    <button type="button" class="who-btn active" data-user="">View all</button>
+  </div>
+
   <div class="tabs" id="tabs">
     <button type="button" class="tab active" data-filter="all">All days</button>
     <button type="button" class="tab" data-filter="fri">Friday</button>
@@ -345,12 +508,34 @@
     <input type="search" id="artist-search" placeholder="Filter by name…" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
   </div>
 
+  <div class="add-section" id="add-section">
+    <h3>Add an artist for the selected sibling</h3>
+    <div class="add-row">
+      <input class="add-input" id="add-name" placeholder="Artist name" autocomplete="off">
+      <select class="add-select" id="add-day" aria-label="Day">
+        <option value="fri">Friday</option>
+        <option value="sat">Saturday</option>
+        <option value="sun">Sunday</option>
+      </select>
+      <select class="add-select" id="add-status" aria-label="Status">
+        <option value="yes">Yes</option>
+        <option value="maybe">Maybe</option>
+      </select>
+      <button type="button" class="add-btn" id="add-artist">Add</button>
+    </div>
+  </div>
+
   <div id="list"></div>
   <p id="no-results" role="status">No results.</p>
 </div>
 
+<div class="save-banner" id="save-banner" role="status">
+  <span>Save your changes?</span>
+  <button type="button" class="save-btn" id="save-changes">Save</button>
+</div>
+
 <script>
-const artists = [
+const DEFAULT_ARTISTS = [
   // FRIDAY (poster order)
   { name:"Charli XCX",       day:"fri", s1:true,  s2:true,  s3:true,  pos:1  },
   { name:"Griztronics",      day:"fri", s2:false, s3:true,  pos:3  },
@@ -401,9 +586,25 @@ const artists = [
   { name:"Night Tapes",          day:"sun", s2:true,  s3:false, pos:24 },
 ];
 
+const STORAGE_KEY = 'osl2026-overlap-picks';
 const dayLabels = { fri:"Friday", sat:"Saturday", sun:"Sunday" };
 // Sibling 1 = Zach, 2 = Jonas, 3 = Zoe
 const S1 = "Zach", S2 = "Jonas", S3 = "Zoe";
+const SIBLINGS = [
+  { id: 1, name: S1 },
+  { id: 2, name: S2 },
+  { id: 3, name: S3 },
+];
+const loadArtists = () => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch (e) {}
+  return DEFAULT_ARTISTS.map(a => ({...a}));
+};
+let artists = loadArtists();
+let currentUser = null;
+
 const isMaybeOnly = a => !a.s1 && !a.s2 && !a.s3;
 const allThreeOnRow = a => a.s1 && a.s2 && a.s3;
 const confirmedCount = a => [a.s1, a.s2, a.s3].filter(Boolean).length;
@@ -448,6 +649,82 @@ const useGreyMaybe = (a, sib) => {
 };
 
 const maybeBadgeClass = (a, sib) => (useGreyMaybe(a, sib) ? 'bmaybe' : 'b' + sib);
+const escapeHtml = value => String(value).replace(/[&<>"']/g, ch => ({
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+}[ch]));
+
+const getStatus = (a, sib) => a['s' + sib] ? 'yes' : a['m' + sib] ? 'maybe' : 'no';
+
+function activeFilter() {
+  const active = document.querySelector('.tab.active');
+  return active ? active.dataset.filter : 'all';
+}
+
+function renderCurrent() {
+  buildSummary();
+  show(activeFilter(), document.querySelector('.tab.active'));
+}
+
+function markDirty() {
+  document.getElementById('save-banner').classList.add('show');
+}
+
+function saveToStorage() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(artists));
+    document.getElementById('save-banner').classList.remove('show');
+  } catch (e) {
+    alert('Could not save changes in this browser.');
+  }
+}
+
+function setCurrentUser(userId) {
+  currentUser = userId ? Number(userId) : null;
+  document.querySelectorAll('.who-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.user === (userId || ''));
+  });
+  document.getElementById('add-section').classList.toggle('show', Boolean(currentUser));
+  renderCurrent();
+}
+
+function setVote(idx, sib, status) {
+  const artist = artists[idx];
+  if (!artist) return;
+  const current = getStatus(artist, sib);
+  artist['s' + sib] = status === 'yes' && current !== 'yes';
+  artist['m' + sib] = status === 'maybe' && current !== 'maybe';
+  markDirty();
+  renderCurrent();
+}
+
+function addArtist() {
+  if (!currentUser) return;
+  const nameInput = document.getElementById('add-name');
+  const name = nameInput.value.trim();
+  if (!name) return;
+
+  const day = document.getElementById('add-day').value;
+  const status = document.getElementById('add-status').value;
+  const existingIndex = artists.findIndex(a => (
+    a.day === day && a.name.toLowerCase() === name.toLowerCase()
+  ));
+  const idx = existingIndex >= 0 ? existingIndex : artists.length;
+
+  if (existingIndex < 0) {
+    const maxPos = Math.max(0, ...artists.filter(a => a.day === day).map(a => a.pos || 0));
+    artists.push({ name, day, s1:false, s2:false, s3:false, pos:maxPos + 1 });
+  }
+
+  artists[idx]['s' + currentUser] = status === 'yes';
+  artists[idx]['m' + currentUser] = status === 'maybe';
+  nameInput.value = '';
+  markDirty();
+  renderCurrent();
+}
 
 let searchQuery = '';
 
@@ -481,7 +758,26 @@ function buildRow(a) {
   }
 
   const badges = parts.join(' ');
-  el.innerHTML = `<span class="artist-name">${a.name}</span>${a.note ? `<span class="note">${a.note}</span>` : ''}<div class="badges">${badges}</div>`;
+  el.innerHTML = `<span class="artist-name">${escapeHtml(a.name)}</span>${a.note ? `<span class="note">${escapeHtml(a.note)}</span>` : ''}<div class="badges">${badges}</div>`;
+
+  if (currentUser && Number.isInteger(a._idx)) {
+    const controls = document.createElement('div');
+    controls.className = 'edit-controls';
+    [
+      ['yes', 'Yes'],
+      ['maybe', 'Maybe'],
+      ['no', 'No'],
+    ].forEach(([status, label]) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `vote-btn ${status}` + (getStatus(a, currentUser) === status ? ' active' : '');
+      btn.textContent = label;
+      btn.addEventListener('click', () => setVote(a._idx, currentUser, status));
+      controls.appendChild(btn);
+    });
+    el.appendChild(controls);
+  }
+
   return el;
 }
 
@@ -502,7 +798,7 @@ function show(filter, tabBtn) {
   let anyContent = false;
 
   days.forEach(day => {
-    let pool = artists.filter(a => a.day === day);
+    let pool = artists.map((a, i) => ({...a, _idx:i})).filter(a => a.day === day);
     if (filter === 'overlap') pool = pool.filter(sharedConfirmedOnRow);
     pool = pool.filter(matchesSearch);
     if (!pool.length) return;
@@ -580,11 +876,23 @@ document.getElementById('tabs').addEventListener('click', e => {
   show(btn.dataset.filter, btn);
 });
 
+document.getElementById('who-bar').addEventListener('click', e => {
+  const btn = e.target.closest('.who-btn');
+  if (!btn) return;
+  setCurrentUser(btn.dataset.user);
+});
+
 document.getElementById('artist-search').addEventListener('input', e => {
   searchQuery = e.target.value;
   const active = document.querySelector('.tab.active');
   show(active ? active.dataset.filter : 'all', active);
 });
+
+document.getElementById('add-artist').addEventListener('click', addArtist);
+document.getElementById('add-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addArtist();
+});
+document.getElementById('save-changes').addEventListener('click', saveToStorage);
 
 buildSummary();
 show('all', document.querySelector('.tab[data-filter="all"]'));
