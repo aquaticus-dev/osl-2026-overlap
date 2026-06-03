@@ -15,12 +15,12 @@
     --border: rgba(255,255,255,0.08);
     --text: #f0ede6;
     --muted: #888;
-    --overlap-bg: #271018;
-    --overlap-border: #c84f78;
-    --overlap-text: #f08aaa;
-    --triple-bg: #2b0f10;
-    --triple-border: #e35b5b;
-    --triple-text: #ff9a9a;
+    --overlap-bg: #211327;
+    --overlap-border: #9b4bb5;
+    --overlap-text: #d18be6;
+    --triple-bg: #2a111b;
+    --triple-border: var(--accent);
+    --triple-text: var(--accent);
     --s1-bg: #1f1a0b;
     --s1-border: #b38a22;
     --s1-text: #f0c95a;
@@ -120,12 +120,12 @@
   }
 
   .stat.triple[aria-pressed="true"] {
-    background: #3a1516;
+    background: #3b1827;
     border-color: var(--triple-text);
   }
 
   .stat.two-overlap[aria-pressed="true"] {
-    background: #361725;
+    background: #2e1a38;
     border-color: var(--overlap-text);
   }
 
@@ -376,9 +376,9 @@
     display: flex;
     flex-direction: column;
     gap: 3px;
-    grid-column: 2;
+    grid-column: 1 / -1;
     justify-self: start;
-    max-width: 320px;
+    padding-left: 0;
   }
 
   .note {
@@ -649,7 +649,6 @@
     .artist-title { flex: 1 1 100%; }
     .artist-name { font-size: 1rem; }
     .badges, .notes, .edit-panel { grid-column: 1; justify-content: flex-start; }
-    .notes { max-width: none; }
     .edit-panel { align-items: flex-start; flex-direction: column; gap: 6px; margin-left: 0; }
     .edit-controls { width: 100%; }
     .vote-btn { flex: 1; }
