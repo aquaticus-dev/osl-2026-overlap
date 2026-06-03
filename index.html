@@ -284,14 +284,17 @@
   .artists { display: flex; flex-direction: column; gap: 6px; }
 
   .artist {
-    display: flex;
-    align-items: center;
-    gap: 12px;
     padding: 11px 14px;
     border-radius: 8px;
     border: 1px solid var(--border);
     background: var(--surface);
     transition: border-color 0.15s;
+  }
+
+  .artist-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
 
   .artist.overlap {
@@ -305,15 +308,37 @@
   }
 
   .artist.editing {
-    align-items: flex-start;
-    flex-wrap: wrap;
+    display: block;
   }
 
   .artist-name {
-    flex: 1;
+    flex: 0 1 auto;
+    min-width: 0;
     font-size: 0.95rem;
     color: var(--text);
     font-weight: 500;
+  }
+
+  .artist-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .genre {
+    padding: 2px 7px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    color: var(--muted);
+    font-size: 0.66rem;
+    line-height: 1.2;
+    letter-spacing: 0.03em;
+    text-transform: lowercase;
+    white-space: nowrap;
   }
 
   .artist.overlap .artist-name { color: var(--overlap-text); }
@@ -321,9 +346,9 @@
 
   .notes {
     display: flex;
-    flex: 1 1 100%;
     flex-direction: column;
     gap: 3px;
+    margin-top: 7px;
   }
 
   .note {
@@ -342,7 +367,7 @@
     .note.s3 { color: rgba(94,201,138,0.65); }
   }
 
-  .badges { display: flex; gap: 5px; flex-wrap: wrap; }
+  .badges { display: flex; gap: 5px; flex: 0 0 auto; flex-wrap: wrap; justify-content: flex-end; }
 
   .badge {
     font-size: 0.7rem;
@@ -377,11 +402,8 @@
     margin-left: auto;
   }
 
-  .artist.editing .artist-name { flex: 1 1 220px; }
-  .artist.editing .badges { flex: 0 1 auto; }
   .artist.editing .edit-panel {
-    flex: 1 1 100%;
-    margin-left: 0;
+    margin-top: 8px;
     padding-top: 8px;
     border-top: 1px solid var(--border);
     justify-content: space-between;
@@ -591,15 +613,15 @@
     .add-row { flex-direction: column; }
     .add-input, .add-select, .add-btn { width: 100%; }
     .day-label { font-size: 1.6rem; }
-    .artist {
+    .artist-main {
       flex-wrap: wrap;
       align-items: flex-start;
       gap: 8px;
-      padding: 12px;
     }
-    .artist-name { flex: 1 1 100%; font-size: 1rem; }
-    .note { flex: 1 1 100%; margin-right: 0; }
-    .badges, .notes, .edit-panel { flex: 1 1 100%; }
+    .artist { padding: 12px; }
+    .artist-title { flex: 1 1 100%; }
+    .artist-name { font-size: 1rem; }
+    .badges, .notes, .edit-panel { flex: 1 1 100%; justify-content: flex-start; }
     .edit-panel { align-items: flex-start; flex-direction: column; gap: 6px; margin-left: 0; }
     .edit-controls { width: 100%; }
     .vote-btn { flex: 1; }
@@ -682,101 +704,101 @@
 <script>
 const DEFAULT_ARTISTS = [
   // FRIDAY (poster order)
-  { name:"Charli XCX",                         day:"fri", s1:true,  s2:true,  s3:true,  pos:1  },
-  { name:"Turnstile",                          day:"fri", s1:false, s2:false, s3:false, pos:2  },
-  { name:"GRiZTRONICS (Subtronics + GRiZ)",    day:"fri", s1:false, s2:false, s3:true,  pos:3  },
-  { name:"Labrinth",                           day:"fri", s1:false, s2:true,  s3:false, pos:4,  m3:true },
-  { name:"GloRilla",                           day:"fri", s1:false, s2:false, s3:false, pos:5  },
-  { name:"Geese",                              day:"fri", s1:false, s2:false, s3:false, pos:6  },
-  { name:"Clipse",                             day:"fri", s1:false, s2:false, s3:false, pos:7  },
-  { name:"Modest Mouse",                       day:"fri", s1:false, s2:false, s3:true,  pos:8,  m2:true },
-  { name:"Wet Leg",                            day:"fri", s1:false, s2:true,  s3:false, pos:9,  m3:true },
-  { name:"Sierra Ferrell",                     day:"fri", s1:false, s2:false, s3:false, pos:10, m2:true },
-  { name:"Tinashe",                            day:"fri", s1:false, s2:true,  s3:true,  pos:11 },
-  { name:"Odd Mob & OMNOM present HYPERBEAM",  day:"fri", s1:false, s2:false, s3:true,  pos:12 },
-  { name:"The Story So Far",                   day:"fri", s1:false, s2:false, s3:false, pos:13 },
-  { name:"¥ØU$UK€ ¥UK1MAT$U",                  day:"fri", s1:false, s2:false, s3:false, pos:14 },
-  { name:"KI/KI",                              day:"fri", s1:false, s2:false, s3:true,  pos:15 },
-  { name:"Durand Bernarr",                     day:"fri", s1:false, s2:false, s3:false, pos:16 },
-  { name:"ALLEYCVT",                           day:"fri", s1:false, s2:false, s3:true,  pos:17 },
-  { name:"Die Spitz",                          day:"fri", s1:false, s2:false, s3:false, pos:18 },
-  { name:"MPH",                                day:"fri", s1:false, s2:false, s3:false, pos:19 },
-  { name:"Goldie Boutilier",                   day:"fri", s1:false, s2:false, s3:true,  pos:20 },
-  { name:"Dylan Brady",                        day:"fri", s1:false, s2:false, s3:false, pos:21 },
-  { name:"Tobiahs",                            day:"fri", s1:false, s2:false, s3:false, pos:22 },
-  { name:"Billie Marten",                      day:"fri", s1:false, s2:false, s3:false, pos:23, m2:true },
-  { name:"Faouzia",                            day:"fri", s1:false, s2:false, s3:false, pos:24 },
-  { name:"Luke Alessi",                        day:"fri", s1:false, s2:false, s3:false, pos:25 },
-  { name:"Bad Nerves",                         day:"fri", s1:false, s2:false, s3:false, pos:26 },
-  { name:"Chezile",                            day:"fri", s1:false, s2:true,  s3:false, pos:27 },
-  { name:"Sawyer Hill",                        day:"fri", s1:false, s2:false, s3:false, pos:28 },
-  { name:"NEZZA",                              day:"fri", s1:false, s2:true,  s3:false, pos:29 },
-  { name:"Vertigo",                            day:"fri", s1:false, s2:false, s3:false, pos:30 },
+  { name:"Charli XCX", g:"hyperpop / dance pop",                         day:"fri", s1:true,  s2:true,  s3:true,  pos:1  },
+  { name:"Turnstile", g:"hardcore punk",                          day:"fri", s1:false, s2:false, s3:false, pos:2  },
+  { name:"GRiZTRONICS (Subtronics + GRiZ)", g:"bass music / dubstep",    day:"fri", s1:false, s2:false, s3:true,  pos:3  },
+  { name:"Labrinth", g:"cinematic pop / R&B",                           day:"fri", s1:false, s2:true,  s3:false, pos:4,  m3:true },
+  { name:"GloRilla", g:"southern hip-hop",                           day:"fri", s1:false, s2:false, s3:false, pos:5  },
+  { name:"Geese", g:"indie rock",                              day:"fri", s1:false, s2:false, s3:false, pos:6  },
+  { name:"Clipse", g:"hip-hop",                             day:"fri", s1:false, s2:false, s3:false, pos:7  },
+  { name:"Modest Mouse", g:"indie rock",                       day:"fri", s1:false, s2:false, s3:true,  pos:8,  m2:true },
+  { name:"Wet Leg", g:"indie rock",                            day:"fri", s1:false, s2:true,  s3:false, pos:9,  m3:true },
+  { name:"Sierra Ferrell", g:"americana / folk",                     day:"fri", s1:false, s2:false, s3:false, pos:10, m2:true },
+  { name:"Tinashe", g:"alt R&B / pop",                            day:"fri", s1:false, s2:true,  s3:true,  pos:11 },
+  { name:"Odd Mob & OMNOM present HYPERBEAM", g:"tech house",  day:"fri", s1:false, s2:false, s3:true,  pos:12 },
+  { name:"The Story So Far", g:"pop punk",                   day:"fri", s1:false, s2:false, s3:false, pos:13 },
+  { name:"¥ØU$UK€ ¥UK1MAT$U", g:"experimental club",                  day:"fri", s1:false, s2:false, s3:false, pos:14 },
+  { name:"KI/KI", g:"techno / trance",                              day:"fri", s1:false, s2:false, s3:true,  pos:15 },
+  { name:"Durand Bernarr", g:"R&B / soul",                     day:"fri", s1:false, s2:false, s3:false, pos:16 },
+  { name:"ALLEYCVT", g:"bass / dubstep",                           day:"fri", s1:false, s2:false, s3:true,  pos:17 },
+  { name:"Die Spitz", g:"punk rock",                          day:"fri", s1:false, s2:false, s3:false, pos:18 },
+  { name:"MPH", g:"UK garage / bass",                                day:"fri", s1:false, s2:false, s3:false, pos:19 },
+  { name:"Goldie Boutilier", g:"alt country pop",                   day:"fri", s1:false, s2:false, s3:true,  pos:20 },
+  { name:"Dylan Brady", g:"experimental pop",                        day:"fri", s1:false, s2:false, s3:false, pos:21 },
+  { name:"Tobiahs", g:"dance pop",                            day:"fri", s1:false, s2:false, s3:false, pos:22 },
+  { name:"Billie Marten", g:"indie folk",                      day:"fri", s1:false, s2:false, s3:false, pos:23, m2:true },
+  { name:"Faouzia", g:"pop vocals",                            day:"fri", s1:false, s2:false, s3:false, pos:24 },
+  { name:"Luke Alessi", g:"melodic house",                        day:"fri", s1:false, s2:false, s3:false, pos:25 },
+  { name:"Bad Nerves", g:"garage punk",                         day:"fri", s1:false, s2:false, s3:false, pos:26 },
+  { name:"Chezile", g:"alt R&B",                            day:"fri", s1:false, s2:true,  s3:false, pos:27 },
+  { name:"Sawyer Hill", g:"singer-songwriter",                        day:"fri", s1:false, s2:false, s3:false, pos:28 },
+  { name:"NEZZA", g:"latin pop / R&B",                              day:"fri", s1:false, s2:true,  s3:false, pos:29 },
+  { name:"Vertigo", g:"indie / alt pop",                            day:"fri", s1:false, s2:false, s3:false, pos:30 },
 
   // SATURDAY (poster order)
-  { name:"The Strokes",          day:"sat", s1:true,  s2:false, s3:true,  pos:1,  m2:true, n2:"relisten" },
-  { name:"The xx",               day:"sat", s1:true,  s2:true,  s3:false, pos:2  },
-  { name:"Djo",                  day:"sat", s1:true,  s2:true,  s3:false, pos:3  },
-  { name:"PinkPantheress",       day:"sat", s1:false, s2:true,  s3:true,  pos:4  },
-  { name:"Dijon",                day:"sat", s1:false, s2:false, s3:true,  pos:5  },
-  { name:"Ethel Cain",           day:"sat", s1:false, s2:true,  s3:false, pos:6  },
-  { name:"Lucy Dacus",           day:"sat", s1:false, s2:false, s3:false, pos:7,  m2:true },
-  { name:"Malcolm Todd",         day:"sat", s1:false, s2:false, s3:true,  pos:8,  m2:true },
-  { name:"Lane 8",               day:"sat", s1:false, s2:true,  s3:false, pos:9  },
-  { name:"Snow Strippers",       day:"sat", s1:false, s2:false, s3:false, pos:10 },
-  { name:"it's murph",           day:"sat", s1:false, s2:false, s3:true,  pos:11 },
-  { name:"Audrey Hobert",        day:"sat", s1:false, s2:false, s3:false, pos:12 },
-  { name:"Ben Böhmer",           day:"sat", s1:true,  s2:true,  s3:false, pos:13, n2:"instrumental set" },
-  { name:"DJ Trixie Mattel",     day:"sat", s1:false, s2:false, s3:false, pos:14 },
-  { name:"Łaszewo",              day:"sat", s1:false, s2:false, s3:true,  pos:15, m2:true, n3:"seen many times, still loves them" },
-  { name:"SIENNA SPIRO",         day:"sat", s1:false, s2:false, s3:true,  pos:16 },
-  { name:"Sultan + Shepard",     day:"sat", s1:false, s2:true,  s3:false, pos:17, n2:"low fi set" },
-  { name:"Silvana Estrada",      day:"sat", s1:false, s2:false, s3:false, pos:18 },
-  { name:"Haute & Freddy",       day:"sat", s1:false, s2:true,  s3:false, pos:19 },
-  { name:"Yard Act",             day:"sat", s1:false, s2:false, s3:false, pos:20 },
-  { name:"Wunderhorse",          day:"sat", s1:false, s2:false, s3:false, pos:21 },
-  { name:"camoufly",             day:"sat", s1:false, s2:false, s3:false, pos:22 },
-  { name:"Bandalos Chinos",      day:"sat", s1:false, s2:false, s3:false, pos:23 },
-  { name:"After",                day:"sat", s1:false, s2:false, s3:false, pos:24 },
-  { name:"RIO KOSTA",            day:"sat", s1:false, s2:false, s3:false, pos:25 },
-  { name:"Automatic",            day:"sat", s1:false, s2:false, s3:false, pos:26 },
-  { name:"1-800 GIRLS",          day:"sat", s1:false, s2:false, s3:false, pos:27 },
-  { name:"Red Leather",          day:"sat", s1:false, s2:false, s3:false, pos:28, m2:true },
-  { name:"Racing Mount Pleasant", day:"sat", s1:false, s2:false, s3:false, pos:29 },
-  { name:"RYMAN",                day:"sat", s1:false, s2:false, s3:false, pos:30 },
-  { name:"bad juuju",            day:"sat", s1:false, s2:false, s3:false, pos:31 },
+  { name:"The Strokes", g:"indie rock",          day:"sat", s1:true,  s2:false, s3:true,  pos:1,  m2:true, n2:"relisten" },
+  { name:"The xx", g:"indie electronic",               day:"sat", s1:true,  s2:true,  s3:false, pos:2  },
+  { name:"Djo", g:"psych pop / indie",                  day:"sat", s1:true,  s2:true,  s3:false, pos:3  },
+  { name:"PinkPantheress", g:"UK garage pop",       day:"sat", s1:false, s2:true,  s3:true,  pos:4  },
+  { name:"Dijon", g:"alt R&B / soul",                day:"sat", s1:false, s2:false, s3:true,  pos:5  },
+  { name:"Ethel Cain", g:"gothic americana",           day:"sat", s1:false, s2:true,  s3:false, pos:6  },
+  { name:"Lucy Dacus", g:"indie rock",           day:"sat", s1:false, s2:false, s3:false, pos:7,  m2:true },
+  { name:"Malcolm Todd", g:"indie pop / R&B",         day:"sat", s1:false, s2:false, s3:true,  pos:8,  m2:true },
+  { name:"Lane 8", g:"melodic house",               day:"sat", s1:false, s2:true,  s3:false, pos:9  },
+  { name:"Snow Strippers", g:"electroclash",       day:"sat", s1:false, s2:false, s3:false, pos:10 },
+  { name:"it's murph", g:"house / dance",           day:"sat", s1:false, s2:false, s3:true,  pos:11 },
+  { name:"Audrey Hobert", g:"alt pop",        day:"sat", s1:false, s2:false, s3:false, pos:12 },
+  { name:"Ben Böhmer", g:"melodic house",           day:"sat", s1:true,  s2:true,  s3:false, pos:13, n2:"instrumental set" },
+  { name:"DJ Trixie Mattel", g:"pop DJ set",     day:"sat", s1:false, s2:false, s3:false, pos:14 },
+  { name:"Łaszewo", g:"electronic pop",              day:"sat", s1:false, s2:false, s3:true,  pos:15, m2:true, n3:"seen many times, still loves them" },
+  { name:"SIENNA SPIRO", g:"soul pop",         day:"sat", s1:false, s2:false, s3:true,  pos:16 },
+  { name:"Sultan + Shepard", g:"melodic house",     day:"sat", s1:false, s2:true,  s3:false, pos:17, n2:"low fi set" },
+  { name:"Silvana Estrada", g:"latin folk",      day:"sat", s1:false, s2:false, s3:false, pos:18 },
+  { name:"Haute & Freddy", g:"indie pop",       day:"sat", s1:false, s2:true,  s3:false, pos:19 },
+  { name:"Yard Act", g:"post-punk",             day:"sat", s1:false, s2:false, s3:false, pos:20 },
+  { name:"Wunderhorse", g:"alt rock",          day:"sat", s1:false, s2:false, s3:false, pos:21 },
+  { name:"camoufly", g:"future bass",             day:"sat", s1:false, s2:false, s3:false, pos:22 },
+  { name:"Bandalos Chinos", g:"indie pop rock",      day:"sat", s1:false, s2:false, s3:false, pos:23 },
+  { name:"After", g:"indie electronic",                day:"sat", s1:false, s2:false, s3:false, pos:24 },
+  { name:"RIO KOSTA", g:"latin indie pop",            day:"sat", s1:false, s2:false, s3:false, pos:25 },
+  { name:"Automatic", g:"post-punk",            day:"sat", s1:false, s2:false, s3:false, pos:26 },
+  { name:"1-800 GIRLS", g:"house / breaks",          day:"sat", s1:false, s2:false, s3:false, pos:27 },
+  { name:"Red Leather", g:"alt rock / country",          day:"sat", s1:false, s2:false, s3:false, pos:28, m2:true },
+  { name:"Racing Mount Pleasant", g:"indie rock", day:"sat", s1:false, s2:false, s3:false, pos:29 },
+  { name:"RYMAN", g:"indie pop",                day:"sat", s1:false, s2:false, s3:false, pos:30 },
+  { name:"bad juuju", g:"alt pop",            day:"sat", s1:false, s2:false, s3:false, pos:31 },
 
   // SUNDAY (poster order)
-  { name:"RÜFÜS DU SOL",         day:"sun", s1:true,  s2:true,  s3:true,  pos:1  },
-  { name:"Baby Keem",            day:"sun", s1:false, s2:false, s3:false, pos:2  },
-  { name:"Empire Of The Sun",    day:"sun", s1:true,  s2:true,  s3:true,  pos:3  },
-  { name:"Death Cab for Cutie",  day:"sun", s1:true,  s2:true,  s3:false, pos:4  },
-  { name:"Disco Lines",          day:"sun", s1:false, s2:false, s3:true,  pos:5,  m2:true },
-  { name:"Mariah the Scientist", day:"sun", s1:false, s2:false, s3:false, pos:6,  m2:true },
-  { name:"Not for Radio",        day:"sun", s1:false, s2:false, s3:false, pos:7,  m2:true },
-  { name:"Boris Brejcha",        day:"sun", s1:false, s2:false, s3:false, pos:8  },
-  { name:"JADE",                 day:"sun", s1:false, s2:true,  s3:false, pos:9  },
-  { name:"The Temper Trap",      day:"sun", s1:true,  s2:true,  s3:false, pos:10 },
-  { name:"kwn",                  day:"sun", s1:false, s2:false, s3:false, pos:11 },
-  { name:"Boys Noize",           day:"sun", s1:false, s2:false, s3:true,  pos:12 },
-  { name:"DESTIN CONRAD",        day:"sun", s1:false, s2:false, s3:false, pos:13, m2:true },
-  { name:"Kingfishr",            day:"sun", s1:false, s2:false, s3:false, pos:14 },
-  { name:"Balu Brigada",         day:"sun", s1:false, s2:true,  s3:true,  pos:15, n3:"VERY excited!" },
-  { name:"Frost Children",       day:"sun", s1:false, s2:false, s3:false, pos:16 },
-  { name:"Miss Monique",         day:"sun", s1:false, s2:false, s3:false, pos:17 },
-  { name:"Carlita",              day:"sun", s1:false, s2:false, s3:false, pos:18 },
-  { name:"Momma",                day:"sun", s1:false, s2:false, s3:false, pos:19 },
-  { name:"Amble",                day:"sun", s1:false, s2:false, s3:false, pos:20 },
-  { name:"Sports",               day:"sun", s1:false, s2:false, s3:false, pos:21 },
-  { name:"Infinity Song",        day:"sun", s1:false, s2:false, s3:false, pos:22 },
-  { name:"Marlon Funaki",        day:"sun", s1:false, s2:false, s3:false, pos:23, m2:true },
-  { name:"Night Tapes",          day:"sun", s1:false, s2:true,  s3:false, pos:24 },
-  { name:"X CLUB.",              day:"sun", s1:false, s2:false, s3:false, pos:25 },
-  { name:"Jim Legxacy",          day:"sun", s1:false, s2:false, s3:false, pos:26 },
-  { name:"Sosocamo",             day:"sun", s1:false, s2:false, s3:false, pos:27 },
-  { name:"Day We Ran",           day:"sun", s1:false, s2:false, s3:false, pos:28 },
-  { name:"Cruz Beckham",         day:"sun", s1:false, s2:false, s3:false, pos:29 },
-  { name:"Britton",              day:"sun", s1:false, s2:false, s3:false, pos:30 },
+  { name:"RÜFÜS DU SOL", g:"electronic / live house",         day:"sun", s1:true,  s2:true,  s3:true,  pos:1  },
+  { name:"Baby Keem", g:"hip-hop",            day:"sun", s1:false, s2:false, s3:false, pos:2  },
+  { name:"Empire Of The Sun", g:"electropop",    day:"sun", s1:true,  s2:true,  s3:true,  pos:3  },
+  { name:"Death Cab for Cutie", g:"indie rock",  day:"sun", s1:true,  s2:true,  s3:false, pos:4  },
+  { name:"Disco Lines", g:"dance / house",          day:"sun", s1:false, s2:false, s3:true,  pos:5,  m2:true },
+  { name:"Mariah the Scientist", g:"R&B", day:"sun", s1:false, s2:false, s3:false, pos:6,  m2:true },
+  { name:"Not for Radio", g:"indie / alt",        day:"sun", s1:false, s2:false, s3:false, pos:7,  m2:true },
+  { name:"Boris Brejcha", g:"minimal techno",        day:"sun", s1:false, s2:false, s3:false, pos:8  },
+  { name:"JADE", g:"pop",                 day:"sun", s1:false, s2:true,  s3:false, pos:9  },
+  { name:"The Temper Trap", g:"indie rock",      day:"sun", s1:true,  s2:true,  s3:false, pos:10 },
+  { name:"kwn", g:"R&B",                  day:"sun", s1:false, s2:false, s3:false, pos:11 },
+  { name:"Boys Noize", g:"electro / techno",           day:"sun", s1:false, s2:false, s3:true,  pos:12 },
+  { name:"DESTIN CONRAD", g:"R&B",        day:"sun", s1:false, s2:false, s3:false, pos:13, m2:true },
+  { name:"Kingfishr", g:"folk pop",            day:"sun", s1:false, s2:false, s3:false, pos:14 },
+  { name:"Balu Brigada", g:"indie pop",         day:"sun", s1:false, s2:true,  s3:true,  pos:15, n3:"VERY excited!" },
+  { name:"Frost Children", g:"hyperpop / electro",       day:"sun", s1:false, s2:false, s3:false, pos:16 },
+  { name:"Miss Monique", g:"progressive house",         day:"sun", s1:false, s2:false, s3:false, pos:17 },
+  { name:"Carlita", g:"house / disco",              day:"sun", s1:false, s2:false, s3:false, pos:18 },
+  { name:"Momma", g:"alt rock",                day:"sun", s1:false, s2:false, s3:false, pos:19 },
+  { name:"Amble", g:"folk trio",                day:"sun", s1:false, s2:false, s3:false, pos:20 },
+  { name:"Sports", g:"indie pop",               day:"sun", s1:false, s2:false, s3:false, pos:21 },
+  { name:"Infinity Song", g:"soul / folk",        day:"sun", s1:false, s2:false, s3:false, pos:22 },
+  { name:"Marlon Funaki", g:"bedroom pop",        day:"sun", s1:false, s2:false, s3:false, pos:23, m2:true },
+  { name:"Night Tapes", g:"dream pop",          day:"sun", s1:false, s2:true,  s3:false, pos:24 },
+  { name:"X CLUB.", g:"techno / rave",              day:"sun", s1:false, s2:false, s3:false, pos:25 },
+  { name:"Jim Legxacy", g:"alt hip-hop / R&B",          day:"sun", s1:false, s2:false, s3:false, pos:26 },
+  { name:"Sosocamo", g:"hip-hop",             day:"sun", s1:false, s2:false, s3:false, pos:27 },
+  { name:"Day We Ran", g:"indie rock",           day:"sun", s1:false, s2:false, s3:false, pos:28 },
+  { name:"Cruz Beckham", g:"pop",         day:"sun", s1:false, s2:false, s3:false, pos:29 },
+  { name:"Britton", g:"pop",              day:"sun", s1:false, s2:false, s3:false, pos:30 },
 ];
 
 const STORAGE_KEY = 'osl2026-overlap-picks';
@@ -1080,6 +1102,10 @@ function buildNotes(a) {
   return notes.length ? `<div class="notes">${notes.join('')}</div>` : '';
 }
 
+function artistGenre(a) {
+  return a.g || DEFAULT_ARTISTS.find(base => artistKey(base.name) === artistKey(a.name))?.g || '';
+}
+
 function buildRow(a) {
   const el = document.createElement('div');
   el.className = 'artist'
@@ -1105,7 +1131,8 @@ function buildRow(a) {
   }
 
   const badges = parts.join(' ');
-  el.innerHTML = `<span class="artist-name">${escapeHtml(a.name)}</span><div class="badges">${badges}</div>${buildNotes(a)}`;
+  const genre = artistGenre(a);
+  el.innerHTML = `<div class="artist-main"><div class="artist-title"><span class="artist-name">${escapeHtml(a.name)}</span>${genre ? `<span class="genre">${escapeHtml(genre)}</span>` : ''}</div><div class="badges">${badges}</div></div>${buildNotes(a)}`;
 
   if (editMode && currentUser && Number.isInteger(a._idx)) {
     const editPanel = document.createElement('div');
