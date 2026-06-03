@@ -120,8 +120,8 @@
   }
 
   .stat.triple[aria-pressed="true"] {
-    background: #3b1827;
-    border-color: var(--triple-text);
+    background: var(--accent);
+    border-color: var(--accent);
   }
 
   .stat.two-overlap[aria-pressed="true"] {
@@ -138,6 +138,8 @@
 
   .stat.triple .stat-num { color: var(--triple-text); }
   .stat.two-overlap .stat-num { color: var(--overlap-text); }
+  .stat.triple[aria-pressed="true"] .stat-num,
+  .stat.triple[aria-pressed="true"] .stat-label { color: #0e0e0e; }
 
   .stat-label {
     font-size: 0.75rem;
