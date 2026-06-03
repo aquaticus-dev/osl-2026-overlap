@@ -33,7 +33,7 @@
     --maybe-bg: #1e1e1e;
     --maybe-border: #444;
     --maybe-text: #888;
-    --accent: #d8d0c4;
+    --accent: #b89cff;
   }
 
   html {
@@ -372,6 +372,12 @@
     margin-bottom: 0.75rem;
   }
 
+  .add-hint {
+    color: var(--muted);
+    font-size: 0.78rem;
+    margin-bottom: 0.75rem;
+  }
+
   .add-row {
     display: flex;
     gap: 8px;
@@ -510,13 +516,10 @@
 
   <div class="add-section" id="add-section">
     <h3>Add an artist for the selected sibling</h3>
+    <p class="add-hint" id="add-hint">Start typing an artist from the lineup.</p>
     <div class="add-row">
-      <input class="add-input" id="add-name" placeholder="Artist name" autocomplete="off">
-      <select class="add-select" id="add-day" aria-label="Day">
-        <option value="fri">Friday</option>
-        <option value="sat">Saturday</option>
-        <option value="sun">Sunday</option>
-      </select>
+      <input class="add-input" id="add-name" list="lineup-artists" placeholder="Artist name" autocomplete="off">
+      <datalist id="lineup-artists"></datalist>
       <select class="add-select" id="add-status" aria-label="Status">
         <option value="yes">Yes</option>
         <option value="maybe">Maybe</option>
@@ -657,6 +660,41 @@ const escapeHtml = value => String(value).replace(/[&<>"']/g, ch => ({
   "'": '&#39;',
 }[ch]));
 
+const normalizeName = value => String(value)
+  .trim()
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '');
+
+function findLineupArtist(name) {
+  const normalized = normalizeName(name);
+  if (!normalized) return null;
+  return artists.find(a => normalizeName(a.name) === normalized)
+    || DEFAULT_ARTISTS.find(a => normalizeName(a.name) === normalized)
+    || null;
+}
+
+function buildLineupOptions() {
+  const options = [...new Map([...artists, ...DEFAULT_ARTISTS].map(a => [normalizeName(a.name), a.name])).values()]
+    .sort((a, b) => a.localeCompare(b));
+  document.getElementById('lineup-artists').innerHTML = options
+    .map(name => `<option value="${escapeHtml(name)}"></option>`)
+    .join('');
+}
+
+function updateAddHint() {
+  const hint = document.getElementById('add-hint');
+  const name = document.getElementById('add-name').value;
+  const match = findLineupArtist(name);
+  if (!name.trim()) {
+    hint.textContent = 'Start typing an artist from the lineup.';
+  } else if (match) {
+    hint.textContent = `Day: ${dayLabels[match.day]}`;
+  } else {
+    hint.textContent = 'Choose an artist from the lineup suggestions so the day can be filled automatically.';
+  }
+}
+
 const getStatus = (a, sib) => a['s' + sib] ? 'yes' : a['m' + sib] ? 'maybe' : 'no';
 
 function activeFilter() {
@@ -707,21 +745,29 @@ function addArtist() {
   const name = nameInput.value.trim();
   if (!name) return;
 
-  const day = document.getElementById('add-day').value;
+  const lineupArtist = findLineupArtist(name);
+  if (!lineupArtist) {
+    alert('Choose an artist from the lineup suggestions so the day can be filled in automatically.');
+    return;
+  }
+
+  const day = lineupArtist.day;
   const status = document.getElementById('add-status').value;
   const existingIndex = artists.findIndex(a => (
-    a.day === day && a.name.toLowerCase() === name.toLowerCase()
+    a.day === day && normalizeName(a.name) === normalizeName(lineupArtist.name)
   ));
   const idx = existingIndex >= 0 ? existingIndex : artists.length;
 
   if (existingIndex < 0) {
     const maxPos = Math.max(0, ...artists.filter(a => a.day === day).map(a => a.pos || 0));
-    artists.push({ name, day, s1:false, s2:false, s3:false, pos:maxPos + 1 });
+    artists.push({ name: lineupArtist.name, day, s1:false, s2:false, s3:false, pos:maxPos + 1 });
   }
 
   artists[idx]['s' + currentUser] = status === 'yes';
   artists[idx]['m' + currentUser] = status === 'maybe';
   nameInput.value = '';
+  updateAddHint();
+  buildLineupOptions();
   markDirty();
   renderCurrent();
 }
@@ -889,11 +935,14 @@ document.getElementById('artist-search').addEventListener('input', e => {
 });
 
 document.getElementById('add-artist').addEventListener('click', addArtist);
+document.getElementById('add-name').addEventListener('input', updateAddHint);
 document.getElementById('add-name').addEventListener('keydown', e => {
   if (e.key === 'Enter') addArtist();
 });
 document.getElementById('save-changes').addEventListener('click', saveToStorage);
 
+buildLineupOptions();
+updateAddHint();
 buildSummary();
 show('all', document.querySelector('.tab[data-filter="all"]'));
 </script>
