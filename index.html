@@ -18,6 +18,9 @@
     --overlap-bg: #2a1a0e;
     --overlap-border: #c4622a;
     --overlap-text: #f4916a;
+    --triple-bg: #221c0b;
+    --triple-border: #d6a82a;
+    --triple-text: #f3d46b;
     --s1-bg: #1a1016;
     --s1-border: #a04068;
     --s1-text: #f088a8;
@@ -191,6 +194,11 @@
     background: var(--overlap-bg);
   }
 
+  .artist.triple {
+    border-color: var(--triple-border);
+    background: var(--triple-bg);
+  }
+
   .artist-name {
     flex: 1;
     font-size: 0.95rem;
@@ -199,6 +207,7 @@
   }
 
   .artist.overlap .artist-name { color: var(--overlap-text); }
+  .artist.triple .artist-name { color: var(--triple-text); }
 
   .note {
     font-size: 0.75rem;
@@ -219,8 +228,6 @@
     white-space: nowrap;
   }
 
-  .bboth { background: var(--overlap-bg); color: var(--overlap-text); border: 1px solid var(--overlap-border); }
-  .btriple { background: #1f1a12; color: #e8c86a; border: 1px solid #a08030; }
   .b1    { background: var(--s1-bg);      color: var(--s1-text);      border: 1px solid var(--s1-border); }
   .b2    { background: var(--s2-bg);      color: var(--s2-text);      border: 1px solid var(--s2-border); }
   .b3    { background: var(--s3-bg);      color: var(--s3-text);      border: 1px solid var(--s3-border); }
@@ -304,8 +311,6 @@
   <div class="stats" id="summary"></div>
 
   <div class="legend">
-    <div class="leg"><div class="dot" style="background:#a08030"></div> All three</div>
-    <div class="leg"><div class="dot" style="background:#c4622a"></div> Jonas &amp; Zoe</div>
     <div class="leg"><div class="dot" style="background:#a04068"></div> Zach only</div>
     <div class="leg"><div class="dot" style="background:#2e4a8a"></div> Jonas only</div>
     <div class="leg"><div class="dot" style="background:#1e6040"></div> Zoe only</div>
@@ -385,9 +390,9 @@ const dayLabels = { fri:"Friday", sat:"Saturday", sun:"Sunday" };
 // Sibling 1 = Zach, 2 = Jonas, 3 = Zoe
 const S1 = "Zach", S2 = "Jonas", S3 = "Zoe";
 const isMaybeOnly = a => !a.s1 && !a.s2 && !a.s3;
-const jonasZoeBoth = a => a.s2 && a.s3;
 const allThreeOnRow = a => a.s1 && a.s2 && a.s3;
-const bothSiblingsOnRow = a => (a.s2 || a.m2) && (a.s3 || a.m3);
+const confirmedCount = a => [a.s1, a.s2, a.s3].filter(Boolean).length;
+const sharedConfirmedOnRow = a => confirmedCount(a) >= 2;
 const multiSiblingOnRow = a => {
   const n = [a.s1, a.s2, a.s3].filter(Boolean).length;
   return n >= 2 || (a.m1 && (a.s2 || a.s3)) || (a.m2 && (a.s1 || a.s3)) || (a.m3 && (a.s1 || a.s2));
@@ -431,22 +436,15 @@ function matchesSearch(a) {
 }
 
 function buildRow(a) {
-  const jzBoth = jonasZoeBoth(a);
-  const triple = allThreeOnRow(a);
   const el = document.createElement('div');
-  el.className = 'artist' + (jzBoth ? ' overlap' : '');
+  el.className = 'artist'
+    + (sharedConfirmedOnRow(a) ? ' overlap' : '')
+    + (allThreeOnRow(a) ? ' triple' : '');
 
   const parts = [];
-  if (triple) {
-    parts.push(`<span class="badge btriple">${S1} &amp; ${S2} &amp; ${S3} ✓</span>`);
-  } else if (jzBoth) {
-    parts.push(`<span class="badge bboth">${S2} &amp; ${S3} ✓</span>`);
-  }
-  if (!triple) {
-    if (a.s1) parts.push(`<span class="badge b1">${S1}</span>`);
-    if (a.s2 && !jzBoth) parts.push(`<span class="badge b2">${S2}</span>`);
-    if (a.s3 && !jzBoth) parts.push(`<span class="badge b3">${S3}</span>`);
-  }
+  if (a.s1) parts.push(`<span class="badge b1">${S1}</span>`);
+  if (a.s2) parts.push(`<span class="badge b2">${S2}</span>`);
+  if (a.s3) parts.push(`<span class="badge b3">${S3}</span>`);
   if (a.m1) {
     const t = a.s1 ? `${S1} also maybe` : `${S1} maybe`;
     parts.push(`<span class="badge ${maybeBadgeClass(a, 1)}">${t}</span>`);
@@ -483,7 +481,7 @@ function show(filter, tabBtn) {
 
   days.forEach(day => {
     let pool = artists.filter(a => a.day === day);
-    if (filter === 'overlap') pool = pool.filter(a => jonasZoeBoth(a) || allThreeOnRow(a));
+    if (filter === 'overlap') pool = pool.filter(sharedConfirmedOnRow);
     pool = pool.filter(matchesSearch);
     if (!pool.length) return;
     anyContent = true;
@@ -500,8 +498,8 @@ function show(filter, tabBtn) {
     artDiv.className = 'artists';
 
     const triples   = pool.filter(allThreeOnRow).sort((a,b) => a.pos - b.pos);
-    const overlaps  = pool.filter(a => jonasZoeBoth(a) && !allThreeOnRow(a)).sort((a,b) => a.pos - b.pos);
-    const singles   = pool.filter(a => (a.s1 || a.s2 || a.s3) && !jonasZoeBoth(a)).sort(sortSingles);
+    const overlaps  = pool.filter(a => sharedConfirmedOnRow(a) && !allThreeOnRow(a)).sort((a,b) => a.pos - b.pos);
+    const singles   = pool.filter(a => (a.s1 || a.s2 || a.s3) && !sharedConfirmedOnRow(a)).sort(sortSingles);
     const maybes    = pool.filter(isMaybeOnly).sort(sortMaybes);
 
     if (triples.length) {
@@ -509,7 +507,7 @@ function show(filter, tabBtn) {
       triples.forEach(a => artDiv.appendChild(buildRow(a)));
     }
     if (overlaps.length) {
-      if (filter !== 'overlap') addSubLabel(artDiv, '↓ Jonas & Zoe');
+      if (filter !== 'overlap') addSubLabel(artDiv, '↓ shared picks');
       overlaps.forEach(a => artDiv.appendChild(buildRow(a)));
     }
     if (singles.length) {
@@ -534,14 +532,14 @@ function show(filter, tabBtn) {
 
 function buildSummary() {
   const triple = artists.filter(allThreeOnRow).length;
-  const jz     = artists.filter(jonasZoeBoth).length;
+  const shared = artists.filter(sharedConfirmedOnRow).length;
   const s1     = artists.filter(a => a.s1).length;
   const s2     = artists.filter(a => a.s2).length;
   const s3     = artists.filter(a => a.s3).length;
   const grid = document.getElementById('summary');
   [
     [triple, 'All three'],
-    [jz, `${S2} & ${S3}`],
+    [shared, 'Shared picks'],
     [s1, `${S1} yes`],
     [s2, `${S2} yes`],
     [s3, `${S3} yes`],
