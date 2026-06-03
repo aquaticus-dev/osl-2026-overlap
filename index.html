@@ -15,12 +15,12 @@
     --border: rgba(255,255,255,0.08);
     --text: #f0ede6;
     --muted: #888;
-    --overlap-bg: #26131a;
-    --overlap-border: #c84f78;
-    --overlap-text: #f08aaa;
-    --triple-bg: #2a1609;
-    --triple-border: #e08a2e;
-    --triple-text: #ffb35c;
+    --overlap-bg: #191229;
+    --overlap-border: #7456d8;
+    --overlap-text: #b9a7ff;
+    --triple-bg: #211536;
+    --triple-border: #9b6cff;
+    --triple-text: #d0b5ff;
     --s1-bg: #1a1016;
     --s1-border: #a04068;
     --s1-text: #f088a8;
@@ -33,7 +33,7 @@
     --maybe-bg: #1e1e1e;
     --maybe-border: #444;
     --maybe-text: #888;
-    --accent: #f06f98;
+    --accent: #9b6cff;
   }
 
   html {
@@ -105,7 +105,8 @@
   }
 
   button.stat[aria-pressed="true"] {
-    box-shadow: 0 0 0 2px rgba(255,255,255,0.08), 0 10px 24px rgba(0,0,0,0.28);
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 3px rgba(208,181,255,0.35), 0 0 22px rgba(155,108,255,0.28), 0 10px 24px rgba(0,0,0,0.32);
   }
 
   .stat.triple {
@@ -116,6 +117,16 @@
   .stat.two-overlap {
     background: var(--overlap-bg);
     border-color: var(--overlap-border);
+  }
+
+  .stat.triple[aria-pressed="true"] {
+    background: #2f1d52;
+    border-color: var(--triple-text);
+  }
+
+  .stat.two-overlap[aria-pressed="true"] {
+    background: #241a3c;
+    border-color: var(--overlap-text);
   }
 
   .stat-num {
