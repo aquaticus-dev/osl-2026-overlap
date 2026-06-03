@@ -184,6 +184,22 @@
   .who-btn[data-user="2"].active { background: var(--s2-bg); border-color: var(--s2-border); color: var(--s2-text); }
   .who-btn[data-user="3"].active { background: var(--s3-bg); border-color: var(--s3-border); color: var(--s3-text); }
 
+  .edit-mode-toggle[aria-pressed="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0e0e0e;
+    font-weight: 600;
+  }
+
+  .edit-user-options {
+    display: none;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .who-bar.editing .edit-user-options { display: flex; }
+
   .list-options {
     display: flex;
     align-items: center;
@@ -303,11 +319,27 @@
   .artist.overlap .artist-name { color: var(--overlap-text); }
   .artist.triple .artist-name { color: var(--triple-text); }
 
+  .notes {
+    display: flex;
+    flex: 1 1 100%;
+    flex-direction: column;
+    gap: 3px;
+  }
+
   .note {
-    font-size: 0.75rem;
-    color: var(--muted);
+    font-size: 0.78rem;
     font-style: italic;
-    margin-right: 4px;
+    line-height: 1.35;
+  }
+
+  .note.s1 { color: color-mix(in srgb, var(--s1-text) 62%, transparent); }
+  .note.s2 { color: color-mix(in srgb, var(--s2-text) 62%, transparent); }
+  .note.s3 { color: color-mix(in srgb, var(--s3-text) 62%, transparent); }
+
+  @supports not (color: color-mix(in srgb, white 50%, transparent)) {
+    .note.s1 { color: rgba(240,136,168,0.65); }
+    .note.s2 { color: rgba(122,170,240,0.65); }
+    .note.s3 { color: rgba(94,201,138,0.65); }
   }
 
   .badges { display: flex; gap: 5px; flex-wrap: wrap; }
@@ -340,7 +372,7 @@
 
   .edit-panel {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     margin-left: auto;
   }
@@ -352,7 +384,7 @@
     margin-left: 0;
     padding-top: 8px;
     border-top: 1px solid var(--border);
-    justify-content: flex-end;
+    justify-content: space-between;
   }
 
   .edit-label {
@@ -383,6 +415,28 @@
   .vote-btn.yes.active { background: #102410; border-color: #3f8f4e; color: #82d991; }
   .vote-btn.maybe.active { background: #242018; border-color: #8a6a20; color: #d8b45c; }
   .vote-btn.no.active { background: #2a0a0a; border-color: #8a2020; color: #e05050; }
+
+  .note-editor {
+    flex: 1 1 240px;
+  }
+
+  .note-input {
+    width: 100%;
+    min-height: 38px;
+    resize: vertical;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.03);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.82rem;
+  }
+
+  .note-input:focus {
+    outline: none;
+    border-color: rgba(255,255,255,0.25);
+  }
 
   .search-wrap {
     margin-bottom: 1.5rem;
@@ -528,6 +582,7 @@
     .legend { gap: 0.75rem; margin-bottom: 1.5rem; }
     .who-bar { gap: 6px; margin-bottom: 1.25rem; }
     .who-btn { flex: 1 1 auto; padding: 8px 10px; }
+    .edit-user-options { flex: 1 1 100%; }
     .list-options { align-items: stretch; flex-direction: column; }
     .lineup-toggle { width: 100%; }
     .tabs { gap: 6px; margin-bottom: 1.25rem; }
@@ -544,10 +599,11 @@
     }
     .artist-name { flex: 1 1 100%; font-size: 1rem; }
     .note { flex: 1 1 100%; margin-right: 0; }
-    .badges, .edit-panel { flex: 1 1 100%; }
+    .badges, .notes, .edit-panel { flex: 1 1 100%; }
     .edit-panel { align-items: flex-start; flex-direction: column; gap: 6px; margin-left: 0; }
     .edit-controls { width: 100%; }
     .vote-btn { flex: 1; }
+    .note-editor { width: 100%; }
     .save-banner { left: 1rem; right: 1rem; justify-content: space-between; }
   }
 </style>
@@ -590,11 +646,13 @@
   </div>
 
   <div class="who-bar" id="who-bar" aria-label="Edit picks">
-    <span class="who-label">Edit as:</span>
-    <button type="button" class="who-btn" data-user="1">Zach</button>
-    <button type="button" class="who-btn" data-user="2">Jonas</button>
-    <button type="button" class="who-btn" data-user="3">Zoe</button>
-    <button type="button" class="who-btn active" data-user="">View all</button>
+    <button type="button" class="who-btn edit-mode-toggle" id="edit-mode-toggle" aria-pressed="false">Edit mode: off</button>
+    <div class="edit-user-options" id="edit-user-options">
+      <span class="who-label">Tap as:</span>
+      <button type="button" class="who-btn" data-user="1">Zach</button>
+      <button type="button" class="who-btn" data-user="2">Jonas</button>
+      <button type="button" class="who-btn" data-user="3">Zoe</button>
+    </div>
   </div>
 
   <div class="add-section" id="add-section">
@@ -656,7 +714,7 @@ const DEFAULT_ARTISTS = [
   { name:"Vertigo",                            day:"fri", s1:false, s2:false, s3:false, pos:30 },
 
   // SATURDAY (poster order)
-  { name:"The Strokes",          day:"sat", s1:true,  s2:false, s3:true,  pos:1,  m2:true, note:"Jonas maybe (relisten)" },
+  { name:"The Strokes",          day:"sat", s1:true,  s2:false, s3:true,  pos:1,  m2:true, n2:"relisten" },
   { name:"The xx",               day:"sat", s1:true,  s2:true,  s3:false, pos:2  },
   { name:"Djo",                  day:"sat", s1:true,  s2:true,  s3:false, pos:3  },
   { name:"PinkPantheress",       day:"sat", s1:false, s2:true,  s3:true,  pos:4  },
@@ -668,11 +726,11 @@ const DEFAULT_ARTISTS = [
   { name:"Snow Strippers",       day:"sat", s1:false, s2:false, s3:false, pos:10 },
   { name:"it's murph",           day:"sat", s1:false, s2:false, s3:true,  pos:11 },
   { name:"Audrey Hobert",        day:"sat", s1:false, s2:false, s3:false, pos:12 },
-  { name:"Ben Böhmer",           day:"sat", s1:true,  s2:true,  s3:false, pos:13, note:"instrumental set" },
+  { name:"Ben Böhmer",           day:"sat", s1:true,  s2:true,  s3:false, pos:13, n2:"instrumental set" },
   { name:"DJ Trixie Mattel",     day:"sat", s1:false, s2:false, s3:false, pos:14 },
-  { name:"Łaszewo",              day:"sat", s1:false, s2:false, s3:true,  pos:15, m2:true, note:"Zoe: seen many times, still loves them" },
+  { name:"Łaszewo",              day:"sat", s1:false, s2:false, s3:true,  pos:15, m2:true, n3:"seen many times, still loves them" },
   { name:"SIENNA SPIRO",         day:"sat", s1:false, s2:false, s3:true,  pos:16 },
-  { name:"Sultan + Shepard",     day:"sat", s1:false, s2:true,  s3:false, pos:17, note:"low fi set" },
+  { name:"Sultan + Shepard",     day:"sat", s1:false, s2:true,  s3:false, pos:17, n2:"low fi set" },
   { name:"Silvana Estrada",      day:"sat", s1:false, s2:false, s3:false, pos:18 },
   { name:"Haute & Freddy",       day:"sat", s1:false, s2:true,  s3:false, pos:19 },
   { name:"Yard Act",             day:"sat", s1:false, s2:false, s3:false, pos:20 },
@@ -703,7 +761,7 @@ const DEFAULT_ARTISTS = [
   { name:"Boys Noize",           day:"sun", s1:false, s2:false, s3:true,  pos:12 },
   { name:"DESTIN CONRAD",        day:"sun", s1:false, s2:false, s3:false, pos:13, m2:true },
   { name:"Kingfishr",            day:"sun", s1:false, s2:false, s3:false, pos:14 },
-  { name:"Balu Brigada",         day:"sun", s1:false, s2:true,  s3:true,  pos:15, note:"Zoe: VERY excited!" },
+  { name:"Balu Brigada",         day:"sun", s1:false, s2:true,  s3:true,  pos:15, n3:"VERY excited!" },
   { name:"Frost Children",       day:"sun", s1:false, s2:false, s3:false, pos:16 },
   { name:"Miss Monique",         day:"sun", s1:false, s2:false, s3:false, pos:17 },
   { name:"Carlita",              day:"sun", s1:false, s2:false, s3:false, pos:18 },
@@ -756,6 +814,25 @@ const ARTIST_ALIASES = {
 
 const artistKey = name => ARTIST_ALIASES[normalizeName(name)] || normalizeName(name);
 
+function legacyNoteOwner(a) {
+  const note = String(a.note || '').toLowerCase();
+  if (note.includes('zoe')) return 3;
+  if (note.includes('jonas')) return 2;
+  if (a.s3 || a.m3) return 3;
+  if (a.s2 || a.m2) return 2;
+  if (a.s1 || a.m1) return 1;
+  return 2;
+}
+
+function cleanLegacyNote(note) {
+  return String(note || '')
+    .replace(/^jonas\s*:?\s*/i, '')
+    .replace(/^zoe\s*:?\s*/i, '')
+    .replace(/^zach\s*:?\s*/i, '')
+    .replace(/^maybe\s*/i, '')
+    .trim();
+}
+
 const loadArtists = () => {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -769,10 +846,14 @@ const loadArtists = () => {
           merged.push({...savedArtist});
           return;
         }
-        ['s1','s2','s3','m1','m2','m3'].forEach(key => {
+        ['s1','s2','s3','m1','m2','m3','n1','n2','n3'].forEach(key => {
           if (key in savedArtist) merged[idx][key] = savedArtist[key];
         });
-        if (savedArtist.note && !merged[idx].note) merged[idx].note = savedArtist.note;
+        if (savedArtist.note) {
+          const owner = legacyNoteOwner(savedArtist);
+          const key = 'n' + owner;
+          if (!merged[idx][key]) merged[idx][key] = cleanLegacyNote(savedArtist.note);
+        }
       });
       return merged;
     }
@@ -780,6 +861,7 @@ const loadArtists = () => {
   return DEFAULT_ARTISTS.map(a => ({...a}));
 };
 let artists = loadArtists();
+let editMode = false;
 let currentUser = null;
 let showUnpicked = false;
 
@@ -878,6 +960,21 @@ function renderCurrent() {
   show(activeFilter(), document.querySelector('.tab.active'));
 }
 
+function updateEditControls() {
+  const toggle = document.getElementById('edit-mode-toggle');
+  const bar = document.getElementById('who-bar');
+  toggle.setAttribute('aria-pressed', String(editMode));
+  toggle.textContent = editMode ? 'Edit mode: on' : 'Edit mode: off';
+  bar.classList.toggle('editing', editMode);
+  document.querySelectorAll('.who-btn[data-user]').forEach(btn => {
+    btn.classList.toggle('active', editMode && Number(btn.dataset.user) === currentUser);
+  });
+  document.getElementById('add-section').classList.toggle('show', editMode);
+  document.getElementById('add-title').textContent = editMode && currentUser
+    ? `Update an artist for ${SIBLINGS[currentUser - 1].name}`
+    : 'Update an artist';
+}
+
 function updateLineupToggle() {
   const btn = document.getElementById('lineup-toggle');
   btn.setAttribute('aria-pressed', String(showUnpicked));
@@ -897,15 +994,16 @@ function saveToStorage() {
   }
 }
 
+function setEditMode(nextMode) {
+  editMode = nextMode;
+  if (editMode && !currentUser) currentUser = 1;
+  updateEditControls();
+  renderCurrent();
+}
+
 function setCurrentUser(userId) {
-  currentUser = userId ? Number(userId) : null;
-  document.querySelectorAll('.who-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.user === (userId || ''));
-  });
-  document.getElementById('add-section').classList.toggle('show', Boolean(currentUser));
-  document.getElementById('add-title').textContent = currentUser
-    ? `Update an artist for ${SIBLINGS[currentUser - 1].name}`
-    : 'Update an artist';
+  currentUser = Number(userId);
+  updateEditControls();
   renderCurrent();
 }
 
@@ -919,8 +1017,19 @@ function setVote(idx, sib, status) {
   renderCurrent();
 }
 
+function setNote(idx, sib, note) {
+  const artist = artists[idx];
+  if (!artist) return;
+  const key = 'n' + sib;
+  const cleaned = note.trim();
+  if (cleaned) artist[key] = cleaned;
+  else delete artist[key];
+  markDirty();
+  renderCurrent();
+}
+
 function addArtist() {
-  if (!currentUser) return;
+  if (!editMode || !currentUser) return;
   const nameInput = document.getElementById('add-name');
   const name = nameInput.value.trim();
   if (!name) return;
@@ -960,12 +1069,23 @@ function matchesSearch(a) {
   return a.name.toLowerCase().includes(q);
 }
 
+function buildNotes(a) {
+  const notes = SIBLINGS
+    .filter(sib => a['n' + sib.id])
+    .map(sib => `<span class="note s${sib.id}">${sib.name}: ${escapeHtml(a['n' + sib.id])}</span>`);
+  if (a.note && !notes.length) {
+    const owner = legacyNoteOwner(a);
+    notes.push(`<span class="note s${owner}">${SIBLINGS[owner - 1].name}: ${escapeHtml(cleanLegacyNote(a.note))}</span>`);
+  }
+  return notes.length ? `<div class="notes">${notes.join('')}</div>` : '';
+}
+
 function buildRow(a) {
   const el = document.createElement('div');
   el.className = 'artist'
     + (sharedConfirmedOnRow(a) ? ' overlap' : '')
     + (allThreeOnRow(a) ? ' triple' : '')
-    + (currentUser ? ' editing' : '');
+    + (editMode ? ' editing' : '');
 
   const parts = [];
   if (a.s1) parts.push(`<span class="badge b1">${S1}</span>`);
@@ -985,9 +1105,9 @@ function buildRow(a) {
   }
 
   const badges = parts.join(' ');
-  el.innerHTML = `<span class="artist-name">${escapeHtml(a.name)}</span>${a.note ? `<span class="note">${escapeHtml(a.note)}</span>` : ''}<div class="badges">${badges}</div>`;
+  el.innerHTML = `<span class="artist-name">${escapeHtml(a.name)}</span><div class="badges">${badges}</div>${buildNotes(a)}`;
 
-  if (currentUser && Number.isInteger(a._idx)) {
+  if (editMode && currentUser && Number.isInteger(a._idx)) {
     const editPanel = document.createElement('div');
     editPanel.className = 'edit-panel';
     editPanel.innerHTML = '<span class="edit-label">Your pick</span>';
@@ -1007,6 +1127,16 @@ function buildRow(a) {
       controls.appendChild(btn);
     });
     editPanel.appendChild(controls);
+
+    const noteEditor = document.createElement('div');
+    noteEditor.className = 'note-editor';
+    noteEditor.innerHTML = `<textarea class="note-input" rows="1" placeholder="Add a note for ${SIBLINGS[currentUser - 1].name}">${escapeHtml(a['n' + currentUser] || '')}</textarea>`;
+    const noteInput = noteEditor.querySelector('.note-input');
+    noteInput.addEventListener('change', () => setNote(a._idx, currentUser, noteInput.value));
+    noteInput.addEventListener('keydown', e => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') noteInput.blur();
+    });
+    editPanel.appendChild(noteEditor);
     el.appendChild(editPanel);
   }
 
@@ -1120,8 +1250,12 @@ document.getElementById('tabs').addEventListener('click', e => {
   show(btn.dataset.filter, btn);
 });
 
-document.getElementById('who-bar').addEventListener('click', e => {
-  const btn = e.target.closest('.who-btn');
+document.getElementById('edit-mode-toggle').addEventListener('click', () => {
+  setEditMode(!editMode);
+});
+
+document.getElementById('edit-user-options').addEventListener('click', e => {
+  const btn = e.target.closest('.who-btn[data-user]');
   if (!btn) return;
   setCurrentUser(btn.dataset.user);
 });
@@ -1147,6 +1281,7 @@ document.getElementById('lineup-toggle').addEventListener('click', () => {
 buildLineupOptions();
 updateAddHint();
 updateLineupToggle();
+updateEditControls();
 buildSummary();
 show('all', document.querySelector('.tab[data-filter="all"]'));
 </script>
