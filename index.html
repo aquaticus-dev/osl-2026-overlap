@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OSL 2026 — Who We're Seeing</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e0e;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --border: rgba(255,255,255,0.08);
+    --text: #f0ede6;
+    --muted: #888;
+    --overlap-bg: #2a1a0e;
+    --overlap-border: #c4622a;
+    --overlap-text: #f4916a;
+    --s1-bg: #1a1016;
+    --s1-border: #a04068;
+    --s1-text: #f088a8;
+    --s2-bg: #131a2a;
+    --s2-border: #2e4a8a;
+    --s2-text: #7aaaf0;
+    --s3-bg: #0e2018;
+    --s3-border: #1e6040;
+    --s3-text: #5ec98a;
+    --maybe-bg: #1e1e1e;
+    --maybe-border: #444;
+    --maybe-text: #888;
+    --accent: #f4916a;
+  }
+
+  html {
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
+    padding: 0 0 4rem;
+    overflow-x: hidden;
+  }
+
+  header {
+    padding: 3rem 2rem 2rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2rem;
+  }
+
+  header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3rem, 10vw, 6rem);
+    letter-spacing: 0.02em;
+    line-height: 0.9;
+    color: var(--text);
+  }
+
+  header h1 span { color: var(--accent); }
+
+  header p {
+    margin-top: 0.75rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .container { max-width: 780px; margin: 0 auto; padding: 0 1.5rem; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    margin-bottom: 2rem;
+  }
+
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+  }
+
+  .stat-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.5rem;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 4px;
+  }
+
+  .legend {
+    display: flex;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+  }
+
+  .leg {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+  }
+
+  .tab {
+    padding: 10px 18px;
+    min-height: 44px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .tab:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+  .tab.active { background: var(--accent); border-color: var(--accent); color: #0e0e0e; font-weight: 600; }
+
+  .day-section { margin-bottom: 2rem; }
+
+  .day-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sub-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 1rem 0 0.5rem;
+    opacity: 0.6;
+  }
+
+  .artists { display: flex; flex-direction: column; gap: 6px; }
+
+  .artist {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    transition: border-color 0.15s;
+  }
+
+  .artist.overlap {
+    border-color: var(--overlap-border);
+    background: var(--overlap-bg);
+  }
+
+  .artist-name {
+    flex: 1;
+    font-size: 0.95rem;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .artist.overlap .artist-name { color: var(--overlap-text); }
+
+  .note {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-style: italic;
+    margin-right: 4px;
+  }
+
+  .badges { display: flex; gap: 5px; flex-wrap: wrap; }
+
+  .badge {
+    font-size: 0.7rem;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .bboth { background: var(--overlap-bg); color: var(--overlap-text); border: 1px solid var(--overlap-border); }
+  .btriple { background: #1f1a12; color: #e8c86a; border: 1px solid #a08030; }
+  .b1    { background: var(--s1-bg);      color: var(--s1-text);      border: 1px solid var(--s1-border); }
+  .b2    { background: var(--s2-bg);      color: var(--s2-text);      border: 1px solid var(--s2-border); }
+  .b3    { background: var(--s3-bg);      color: var(--s3-text);      border: 1px solid var(--s3-border); }
+  .bmaybe{ background: var(--maybe-bg);   color: var(--maybe-text);   border: 1px solid var(--maybe-border); }
+
+  .search-wrap {
+    margin-bottom: 1.5rem;
+  }
+
+  .search-label {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.5rem;
+  }
+
+  #artist-search {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 1rem;
+    -webkit-appearance: none;
+    appearance: none;
+    touch-action: manipulation;
+  }
+
+  #artist-search::placeholder { color: var(--muted); }
+
+  #artist-search:focus {
+    outline: none;
+    border-color: rgba(255,255,255,0.2);
+  }
+
+  #no-results {
+    display: none;
+    color: var(--muted);
+    font-size: 0.9rem;
+    padding: 1rem 0;
+  }
+
+  @media (max-width: 600px) {
+    header { padding: 2rem 1rem 1.5rem; margin-bottom: 1.5rem; }
+    .container { padding: 0 1rem; }
+    .stats { grid-template-columns: 1fr; gap: 8px; margin-bottom: 1.5rem; }
+    .stat { padding: 0.85rem 1rem; }
+    .stat-num { font-size: 2rem; }
+    .legend { gap: 0.75rem; margin-bottom: 1.5rem; }
+    .tabs { gap: 6px; margin-bottom: 1.25rem; }
+    .tab { font-size: 0.78rem; padding: 10px 14px; }
+    .search-wrap { margin-bottom: 1.25rem; }
+    .day-label { font-size: 1.6rem; }
+    .artist {
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 12px;
+    }
+    .artist-name { flex: 1 1 100%; font-size: 1rem; }
+    .note { flex: 1 1 100%; margin-right: 0; }
+    .badges { flex: 1 1 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <h1>OSL <span>2026</span><br>Who We're Seeing</h1>
+    <p>Zach, Jonas &amp; Zoe · Outside Lands · Golden Gate Park</p>
+  </div>
+</header>
+
+<div class="container">
+  <div class="stats" id="summary"></div>
+
+  <div class="legend">
+    <div class="leg"><div class="dot" style="background:#a08030"></div> All three</div>
+    <div class="leg"><div class="dot" style="background:#c4622a"></div> Jonas &amp; Zoe</div>
+    <div class="leg"><div class="dot" style="background:#a04068"></div> Zach only</div>
+    <div class="leg"><div class="dot" style="background:#2e4a8a"></div> Jonas only</div>
+    <div class="leg"><div class="dot" style="background:#1e6040"></div> Zoe only</div>
+    <div class="leg"><div class="dot" style="background:#888"></div> Maybe (solo)</div>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button type="button" class="tab active" data-filter="all">All days</button>
+    <button type="button" class="tab" data-filter="fri">Friday</button>
+    <button type="button" class="tab" data-filter="sat">Saturday</button>
+    <button type="button" class="tab" data-filter="sun">Sunday</button>
+    <button type="button" class="tab" data-filter="overlap">Overlaps only</button>
+  </div>
+
+  <div class="search-wrap">
+    <label class="search-label" for="artist-search">Search artists</label>
+    <input type="search" id="artist-search" placeholder="Filter by name…" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+  </div>
+
+  <div id="list"></div>
+  <p id="no-results" role="status">No results.</p>
+</div>
+
+<script>
+const artists = [
+  // FRIDAY (poster order)
+  { name:"Charli XCX",       day:"fri", s1:true,  s2:true,  s3:true,  pos:1  },
+  { name:"Griztronics",      day:"fri", s2:false, s3:true,  pos:3  },
+  { name:"Labrinth",         day:"fri", s2:true,  s3:false, pos:4,  m3:true },
+  { name:"Modest Mouse",     day:"fri", s2:false, s3:true,  pos:7,  m2:true },
+  { name:"Wet Leg",          day:"fri", s2:true,  s3:false, pos:8,  m3:true },
+  { name:"Tinashe",          day:"fri", s2:true,  s3:true,  pos:9  },
+  { name:"Sierra Ferrell",   day:"fri", s2:false, s3:false, pos:10, m2:true },
+  { name:"Hyperbeam",        day:"fri", s2:false, s3:true,  pos:11 },
+  { name:"KI/KI",            day:"fri", s2:false, s3:true,  pos:14 },
+  { name:"Alleycvt",         day:"fri", s2:false, s3:true,  pos:16 },
+  { name:"Goldie Boutilier", day:"fri", s2:false, s3:true,  pos:19 },
+  { name:"Billie Marten",    day:"fri", s2:false, s3:false, pos:22, m2:true },
+  { name:"Chezile",          day:"fri", s2:true,  s3:false, pos:26 },
+  { name:"NEZZA",            day:"fri", s2:true,  s3:false, pos:28 },
+
+  // SATURDAY (poster order)
+  { name:"The Strokes",      day:"sat", s1:true,  s2:false, s3:true,  pos:1,  m2:true, note:"Jonas maybe (relisten)" },
+  { name:"The XX",           day:"sat", s1:true,  s2:true,  s3:false, pos:2  },
+  { name:"Djo",              day:"sat", s1:true,  s2:true,  s3:false, pos:3  },
+  { name:"Dijon",            day:"sat", s2:false, s3:true,  pos:3  },
+  { name:"PinkPantheress",   day:"sat", s2:true,  s3:true,  pos:4  },
+  { name:"Ethel Cain",       day:"sat", s2:true,  s3:false, pos:5  },
+  { name:"Lucy Dacus",       day:"sat", s2:false, s3:false, pos:6,  m2:true },
+  { name:"Malcom Todd",      day:"sat", s2:false, s3:true,  pos:7,  m2:true },
+  { name:"Lane 8",           day:"sat", s2:true,  s3:false, pos:8  },
+  { name:"It's Murph",       day:"sat", s2:false, s3:true,  pos:10 },
+  { name:"Ben Böhmer",       day:"sat", s1:true,  s2:true,  s3:false, pos:12, note:"instrumental set" },
+  { name:"Laszewo",          day:"sat", s2:false, s3:true,  pos:14, m2:true, note:"Zoe: seen many times, still loves them" },
+  { name:"Sienna Spiro",     day:"sat", s2:false, s3:true,  pos:15 },
+  { name:"Sultan + Shepard", day:"sat", s2:true,  s3:false, pos:16, note:"low fi set" },
+  { name:"Haute & Freddy",   day:"sat", s2:true,  s3:false, pos:18 },
+  { name:"Red Leather",      day:"sat", s2:false, s3:false, pos:29, m2:true },
+  { name:"Destin Conrad",    day:"sat", s2:false, s3:false, pos:31, m2:true },
+
+  // SUNDAY (poster order)
+  { name:"Rufus du Sol",         day:"sun", s1:true,  s2:true,  s3:true,  pos:1  },
+  { name:"Empire of the Sun",    day:"sun", s1:true,  s2:true,  s3:true,  pos:3  },
+  { name:"Death Cab for Cutie",  day:"sun", s1:true,  s2:true,  s3:false, pos:4  },
+  { name:"Disco Lines",          day:"sun", s2:false, s3:true,  pos:5,  m2:true },
+  { name:"Mariah the Scientist", day:"sun", s2:false, s3:false, pos:6,  m2:true },
+  { name:"Not for Radio",        day:"sun", s2:false, s3:false, pos:7,  m2:true },
+  { name:"The Temper Trap",      day:"sun", s1:true,  s2:true,  s3:false, pos:9  },
+  { name:"Jade",                 day:"sun", s2:true,  s3:false, pos:10 },
+  { name:"Boys Noize",           day:"sun", s2:false, s3:true,  pos:12 },
+  { name:"Balu Brigada",         day:"sun", s2:true,  s3:true,  pos:15, note:"Zoe: VERY excited!" },
+  { name:"Marlon Funaki",        day:"sun", s2:false, s3:false, pos:23, m2:true },
+  { name:"Night Tapes",          day:"sun", s2:true,  s3:false, pos:24 },
+];
+
+const dayLabels = { fri:"Friday", sat:"Saturday", sun:"Sunday" };
+// Sibling 1 = Zach, 2 = Jonas, 3 = Zoe
+const S1 = "Zach", S2 = "Jonas", S3 = "Zoe";
+const isMaybeOnly = a => !a.s1 && !a.s2 && !a.s3;
+const jonasZoeBoth = a => a.s2 && a.s3;
+const allThreeOnRow = a => a.s1 && a.s2 && a.s3;
+const bothSiblingsOnRow = a => (a.s2 || a.m2) && (a.s3 || a.m3);
+const multiSiblingOnRow = a => {
+  const n = [a.s1, a.s2, a.s3].filter(Boolean).length;
+  return n >= 2 || (a.m1 && (a.s2 || a.s3)) || (a.m2 && (a.s1 || a.s3)) || (a.m3 && (a.s1 || a.s2));
+};
+/** Lowest sibling # on row (1=Zach/s1, 2=Jonas, 3=Zoe); multi-sibling → min rank */
+const siblingRank = a => {
+  const ranks = [];
+  if (a.s1 || a.m1) ranks.push(1);
+  if (a.s2 || a.m2) ranks.push(2);
+  if (a.s3 || a.m3) ranks.push(3);
+  return ranks.length ? Math.min(...ranks) : 99;
+};
+const sortSingles = (a, b) => {
+  const aMix = multiSiblingOnRow(a) ? 0 : 1;
+  const bMix = multiSiblingOnRow(b) ? 0 : 1;
+  return aMix - bMix || siblingRank(a) - siblingRank(b) || a.pos - b.pos;
+};
+const sortMaybes = (a, b) => siblingRank(a) - siblingRank(b) || a.pos - b.pos;
+
+const countSiblingsOnRow = a =>
+  [a.s1 || a.m1, a.s2 || a.m2, a.s3 || a.m3].filter(Boolean).length;
+
+/** Grey maybe when solo interest on row (one sibling flag total, no other s* yes). */
+const useGreyMaybe = (a, sib) => {
+  if (!a['m' + sib]) return false;
+  if (a['s' + sib]) return false;
+  const otherYes =
+    (sib !== 1 && a.s1) || (sib !== 2 && a.s2) || (sib !== 3 && a.s3);
+  if (otherYes) return false;
+  return countSiblingsOnRow(a) === 1;
+};
+
+const maybeBadgeClass = (a, sib) => (useGreyMaybe(a, sib) ? 'bmaybe' : 'b' + sib);
+
+let searchQuery = '';
+
+function matchesSearch(a) {
+  const q = searchQuery.trim().toLowerCase();
+  if (!q) return true;
+  return a.name.toLowerCase().includes(q);
+}
+
+function buildRow(a) {
+  const jzBoth = jonasZoeBoth(a);
+  const triple = allThreeOnRow(a);
+  const el = document.createElement('div');
+  el.className = 'artist' + (jzBoth ? ' overlap' : '');
+
+  const parts = [];
+  if (triple) {
+    parts.push(`<span class="badge btriple">${S1} &amp; ${S2} &amp; ${S3} ✓</span>`);
+  } else if (jzBoth) {
+    parts.push(`<span class="badge bboth">${S2} &amp; ${S3} ✓</span>`);
+  }
+  if (!triple) {
+    if (a.s1) parts.push(`<span class="badge b1">${S1}</span>`);
+    if (a.s2 && !jzBoth) parts.push(`<span class="badge b2">${S2}</span>`);
+    if (a.s3 && !jzBoth) parts.push(`<span class="badge b3">${S3}</span>`);
+  }
+  if (a.m1) {
+    const t = a.s1 ? `${S1} also maybe` : `${S1} maybe`;
+    parts.push(`<span class="badge ${maybeBadgeClass(a, 1)}">${t}</span>`);
+  }
+  if (a.m2) {
+    const t = a.s2 ? `${S2} also maybe` : `${S2} maybe`;
+    parts.push(`<span class="badge ${maybeBadgeClass(a, 2)}">${t}</span>`);
+  }
+  if (a.m3) {
+    const t = a.s3 ? `${S3} also maybe` : `${S3} maybe`;
+    parts.push(`<span class="badge ${maybeBadgeClass(a, 3)}">${t}</span>`);
+  }
+
+  const badges = parts.join(' ');
+  el.innerHTML = `<span class="artist-name">${a.name}</span>${a.note ? `<span class="note">${a.note}</span>` : ''}<div class="badges">${badges}</div>`;
+  return el;
+}
+
+function addSubLabel(container, text) {
+  const d = document.createElement('div');
+  d.className = 'sub-label';
+  d.textContent = text;
+  container.appendChild(d);
+}
+
+function show(filter, tabBtn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  if (tabBtn) tabBtn.classList.add('active');
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+
+  const days = (filter === 'all' || filter === 'overlap') ? ['fri','sat','sun'] : [filter];
+  let anyContent = false;
+
+  days.forEach(day => {
+    let pool = artists.filter(a => a.day === day);
+    if (filter === 'overlap') pool = pool.filter(a => jonasZoeBoth(a) || allThreeOnRow(a));
+    pool = pool.filter(matchesSearch);
+    if (!pool.length) return;
+    anyContent = true;
+
+    const section = document.createElement('div');
+    section.className = 'day-section';
+
+    const lbl = document.createElement('div');
+    lbl.className = 'day-label';
+    lbl.textContent = dayLabels[day];
+    section.appendChild(lbl);
+
+    const artDiv = document.createElement('div');
+    artDiv.className = 'artists';
+
+    const triples   = pool.filter(allThreeOnRow).sort((a,b) => a.pos - b.pos);
+    const overlaps  = pool.filter(a => jonasZoeBoth(a) && !allThreeOnRow(a)).sort((a,b) => a.pos - b.pos);
+    const singles   = pool.filter(a => (a.s1 || a.s2 || a.s3) && !jonasZoeBoth(a)).sort(sortSingles);
+    const maybes    = pool.filter(isMaybeOnly).sort(sortMaybes);
+
+    if (triples.length) {
+      if (filter !== 'overlap') addSubLabel(artDiv, '↓ all three going');
+      triples.forEach(a => artDiv.appendChild(buildRow(a)));
+    }
+    if (overlaps.length) {
+      if (filter !== 'overlap') addSubLabel(artDiv, '↓ Jonas & Zoe');
+      overlaps.forEach(a => artDiv.appendChild(buildRow(a)));
+    }
+    if (singles.length) {
+      addSubLabel(artDiv, singles.some(a => a.s1) ? '↓ not everyone' : '↓ one of them');
+      singles.forEach(a => artDiv.appendChild(buildRow(a)));
+    }
+    if (maybes.length) {
+      addSubLabel(artDiv, '↓ maybe');
+      maybes.forEach(a => artDiv.appendChild(buildRow(a)));
+    }
+
+    section.appendChild(artDiv);
+    list.appendChild(section);
+  });
+
+  const noRes = document.getElementById('no-results');
+  noRes.textContent = searchQuery.trim()
+    ? 'No artists match your search.'
+    : 'Nothing here for this filter.';
+  noRes.style.display = anyContent ? 'none' : 'block';
+}
+
+function buildSummary() {
+  const triple = artists.filter(allThreeOnRow).length;
+  const jz     = artists.filter(jonasZoeBoth).length;
+  const s1     = artists.filter(a => a.s1).length;
+  const s2     = artists.filter(a => a.s2).length;
+  const s3     = artists.filter(a => a.s3).length;
+  const grid = document.getElementById('summary');
+  [
+    [triple, 'All three'],
+    [jz, `${S2} & ${S3}`],
+    [s1, `${S1} yes`],
+    [s2, `${S2} yes`],
+    [s3, `${S3} yes`],
+  ].forEach(([n,l]) => {
+    const s = document.createElement('div');
+    s.className = 'stat';
+    s.innerHTML = `<div class="stat-num">${n}</div><div class="stat-label">${l}</div>`;
+    grid.appendChild(s);
+  });
+}
+
+document.getElementById('tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.tab');
+  if (!btn) return;
+  show(btn.dataset.filter, btn);
+});
+
+document.getElementById('artist-search').addEventListener('input', e => {
+  searchQuery = e.target.value;
+  const active = document.querySelector('.tab.active');
+  show(active ? active.dataset.filter : 'all', active);
+});
+
+buildSummary();
+show('all', document.querySelector('.tab[data-filter="all"]'));
+</script>
+</body>
+</html>
