@@ -33,7 +33,7 @@
     --maybe-bg: #1e1e1e;
     --maybe-border: #444;
     --maybe-text: #888;
-    --accent: #f4916a;
+    --accent: #d8d0c4;
   }
 
   html {
@@ -90,12 +90,25 @@
     padding: 1rem 1.25rem;
   }
 
+  .stat.triple {
+    background: var(--triple-bg);
+    border-color: var(--triple-border);
+  }
+
+  .stat.two-overlap {
+    background: var(--overlap-bg);
+    border-color: var(--overlap-border);
+  }
+
   .stat-num {
     font-family: 'Bebas Neue', sans-serif;
     font-size: 2.5rem;
     color: var(--accent);
     line-height: 1;
   }
+
+  .stat.triple .stat-num { color: var(--triple-text); }
+  .stat.two-overlap .stat-num { color: var(--overlap-text); }
 
   .stat-label {
     font-size: 0.75rem;
@@ -317,8 +330,6 @@
     <div class="leg"><div class="dot" style="background:#2e4a8a"></div> Jonas <span class="leg-count" id="s2-count"></span></div>
     <div class="leg"><div class="dot" style="background:#1e6040"></div> Zoe <span class="leg-count" id="s3-count"></span></div>
     <div class="leg"><div class="dot" style="background:#888"></div> Maybe (solo)</div>
-    <div class="leg"><div class="dot" style="background:#c4622a"></div> Two-person overlap</div>
-    <div class="leg"><div class="dot" style="background:#d6a82a"></div> Three-person overlap</div>
   </div>
 
   <div class="tabs" id="tabs">
@@ -550,11 +561,11 @@ function buildSummary() {
   const grid = document.getElementById('summary');
   grid.innerHTML = '';
   [
-    [triple, 'Three-person overlaps'],
-    [twoOfThree, 'Two-person overlaps'],
-  ].forEach(([n,l]) => {
+    [triple, 'Three-person overlaps', 'triple'],
+    [twoOfThree, 'Two-person overlaps', 'two-overlap'],
+  ].forEach(([n,l,c]) => {
     const s = document.createElement('div');
-    s.className = 'stat';
+    s.className = `stat ${c}`;
     s.innerHTML = `<div class="stat-num">${n}</div><div class="stat-label">${l}</div>`;
     grid.appendChild(s);
   });
