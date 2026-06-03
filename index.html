@@ -184,6 +184,39 @@
   .who-btn[data-user="2"].active { background: var(--s2-bg); border-color: var(--s2-border); color: var(--s2-text); }
   .who-btn[data-user="3"].active { background: var(--s3-bg); border-color: var(--s3-border); color: var(--s3-text); }
 
+  .list-options {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+  }
+
+  .lineup-toggle {
+    padding: 8px 14px;
+    min-height: 40px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .lineup-toggle[aria-pressed="true"] {
+    background: var(--surface2);
+    border-color: rgba(255,255,255,0.25);
+    color: var(--text);
+  }
+
+  .list-options-hint {
+    color: var(--muted);
+    font-size: 0.78rem;
+  }
+
   .tabs {
     display: flex;
     gap: 8px;
@@ -256,7 +289,8 @@
   }
 
   .artist.editing {
-    align-items: stretch;
+    align-items: flex-start;
+    flex-wrap: wrap;
   }
 
   .artist-name {
@@ -292,6 +326,7 @@
   .b2    { background: var(--s2-bg);      color: var(--s2-text);      border: 1px solid var(--s2-border); }
   .b3    { background: var(--s3-bg);      color: var(--s3-text);      border: 1px solid var(--s3-border); }
   .bmaybe{ background: var(--maybe-bg);   color: var(--maybe-text);   border: 1px solid var(--maybe-border); }
+  .maybe-note { text-transform: lowercase; letter-spacing: 0; font-weight: 500; }
 
   .edit-controls {
     display: flex;
@@ -308,6 +343,16 @@
     align-items: center;
     gap: 8px;
     margin-left: auto;
+  }
+
+  .artist.editing .artist-name { flex: 1 1 220px; }
+  .artist.editing .badges { flex: 0 1 auto; }
+  .artist.editing .edit-panel {
+    flex: 1 1 100%;
+    margin-left: 0;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    justify-content: flex-end;
   }
 
   .edit-label {
@@ -483,6 +528,8 @@
     .legend { gap: 0.75rem; margin-bottom: 1.5rem; }
     .who-bar { gap: 6px; margin-bottom: 1.25rem; }
     .who-btn { flex: 1 1 auto; padding: 8px 10px; }
+    .list-options { align-items: stretch; flex-direction: column; }
+    .lineup-toggle { width: 100%; }
     .tabs { gap: 6px; margin-bottom: 1.25rem; }
     .tab { font-size: 0.78rem; padding: 10px 14px; }
     .search-wrap { margin-bottom: 1.25rem; }
@@ -557,6 +604,11 @@
       </select>
       <button type="button" class="add-btn" id="add-artist">Add</button>
     </div>
+  </div>
+
+  <div class="list-options">
+    <button type="button" class="lineup-toggle" id="lineup-toggle" aria-pressed="false">Show unpicked artists</button>
+    <span class="list-options-hint">Toggle artists nobody has marked yes or maybe.</span>
   </div>
 
   <div id="list"></div>
@@ -728,6 +780,7 @@ const loadArtists = () => {
 };
 let artists = loadArtists();
 let currentUser = null;
+let showUnpicked = false;
 
 const isMaybeOnly = a => !a.s1 && !a.s2 && !a.s3;
 const allThreeOnRow = a => a.s1 && a.s2 && a.s3;
@@ -823,6 +876,12 @@ function renderCurrent() {
   show(activeFilter(), document.querySelector('.tab.active'));
 }
 
+function updateLineupToggle() {
+  const btn = document.getElementById('lineup-toggle');
+  btn.setAttribute('aria-pressed', String(showUnpicked));
+  btn.textContent = showUnpicked ? 'Hide unpicked artists' : 'Show unpicked artists';
+}
+
 function markDirty() {
   document.getElementById('save-banner').classList.add('show');
 }
@@ -911,15 +970,15 @@ function buildRow(a) {
   if (a.s2) parts.push(`<span class="badge b2">${S2}</span>`);
   if (a.s3) parts.push(`<span class="badge b3">${S3}</span>`);
   if (a.m1) {
-    const t = `${S1} (maybe)`;
+    const t = `${S1} <span class="maybe-note">(maybe)</span>`;
     parts.push(`<span class="badge ${maybeBadgeClass(a, 1)}">${t}</span>`);
   }
   if (a.m2) {
-    const t = `${S2} (maybe)`;
+    const t = `${S2} <span class="maybe-note">(maybe)</span>`;
     parts.push(`<span class="badge ${maybeBadgeClass(a, 2)}">${t}</span>`);
   }
   if (a.m3) {
-    const t = `${S3} (maybe)`;
+    const t = `${S3} <span class="maybe-note">(maybe)</span>`;
     parts.push(`<span class="badge ${maybeBadgeClass(a, 3)}">${t}</span>`);
   }
 
@@ -989,7 +1048,7 @@ function show(filter, tabBtn) {
     const overlaps  = pool.filter(a => sharedConfirmedOnRow(a) && !allThreeOnRow(a)).sort(sortShared);
     const singles   = pool.filter(a => (a.s1 || a.s2 || a.s3) && !sharedConfirmedOnRow(a)).sort(sortSingles);
     const maybes    = pool.filter(isMaybeOnly).sort(sortMaybes);
-    const lineup    = currentUser ? pool.filter(a => !hasAnyInterest(a)).sort((a,b) => a.pos - b.pos) : [];
+    const lineup    = showUnpicked ? pool.filter(a => !hasAnyInterest(a)).sort((a,b) => a.pos - b.pos) : [];
     let sectionContent = false;
 
     if (triples.length) {
@@ -1077,9 +1136,15 @@ document.getElementById('add-name').addEventListener('keydown', e => {
   if (e.key === 'Enter') addArtist();
 });
 document.getElementById('save-changes').addEventListener('click', saveToStorage);
+document.getElementById('lineup-toggle').addEventListener('click', () => {
+  showUnpicked = !showUnpicked;
+  updateLineupToggle();
+  renderCurrent();
+});
 
 buildLineupOptions();
 updateAddHint();
+updateLineupToggle();
 buildSummary();
 show('all', document.querySelector('.tab[data-filter="all"]'));
 </script>
