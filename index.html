@@ -744,11 +744,61 @@
     padding: 1rem 0;
   }
 
+  .who-btn[data-user="together"].active {
+    background: var(--triple-bg);
+    border-color: var(--triple-border);
+    color: var(--triple-text);
+  }
+
+  .sched-block.sched-suggest {
+    border-style: dashed;
+    background: rgba(255,255,255,0.02);
+  }
+
+  .sched-block.sched-suggest .sched-stage { font-style: italic; }
+
+  .tag-along-btn {
+    flex-shrink: 0;
+    padding: 6px 12px;
+    min-height: 34px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.03);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .tag-along-btn:hover { border-color: rgba(255,255,255,0.25); }
+
+  .sched-split-notes {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
+    flex-basis: 100%;
+  }
+
+  .sched-split-note {
+    font-size: 0.76rem;
+    font-style: italic;
+    color: var(--muted);
+  }
+
   @media (max-width: 600px) {
     .sched-block { flex-wrap: wrap; }
     .sched-time { min-width: auto; }
     .sched-meta { justify-content: flex-start; width: 100%; }
     .schedule-controls { flex-direction: column; align-items: stretch; }
+    .tag-along-btn { width: 100%; }
   }
 </style>
 </head>
@@ -825,10 +875,11 @@
     <button type="button" class="who-btn" data-user="1">Zach</button>
     <button type="button" class="who-btn" data-user="2">Jonas</button>
     <button type="button" class="who-btn" data-user="3">Zoe</button>
+    <button type="button" class="who-btn" data-user="together">Together</button>
   </div>
 
   <div class="list-options schedule-controls" id="schedule-controls">
-    <span class="list-options-hint">Auto-built from picks. When two picks overlap, tap the one you want — the other stays visible as a backup.</span>
+    <span class="list-options-hint" id="schedule-hint">Auto-built from picks. When two picks overlap, tap the one you want — the other stays visible as a backup.</span>
     <button type="button" class="lineup-toggle" id="schedule-reset">Reset overlaps to suggested</button>
   </div>
 
@@ -1101,27 +1152,137 @@ function setSchedulePick(day, person, cluster, chosenName) {
   renderSchedule();
 }
 
-function togetherBadges(a, person) {
-  return SIBLINGS
+function ownerBadges(a, person) {
+  if (person === 'together') {
+    return SIBLINGS.map(sib => {
+      if (a['s' + sib.id]) return `<span class="badge b${sib.id}">${sib.name}</span>`;
+      if (a['m' + sib.id]) return `<span class="badge b${sib.id}">${sib.name} <span class="maybe-note">(maybe)</span></span>`;
+      return '';
+    }).join(' ');
+  }
+  const mine = a['s' + person]
+    ? `<span class="badge b${person}">${SIBLINGS[person - 1].name}</span>`
+    : `<span class="badge b${person}">${SIBLINGS[person - 1].name} <span class="maybe-note">(maybe)</span></span>`;
+  const others = SIBLINGS
     .filter(sib => sib.id !== person && (a['s' + sib.id] || a['m' + sib.id]))
     .map(sib => `<span class="badge b${sib.id}">${sib.name}${a['s' + sib.id] ? '' : ' <span class="maybe-note">(maybe)</span>'}</span>`)
     .join(' ');
+  return `${mine} ${others}`;
 }
 
-function buildScheduleCard(a, person, selectable, chosen) {
+function findSplitters(day, winner) {
+  const s = timeToMinutes(winner.start), e = timeToMinutes(winner.end);
+  const exclude = artistKey(winner.name);
+  return SIBLINGS
+    .filter(sib => !winner['s' + sib.id] && !winner['m' + sib.id])
+    .map(sib => {
+      const solo = artists.find(a => a.day === day && a.start && a.end && a['s' + sib.id]
+        && artistKey(a.name) !== exclude
+        && timeToMinutes(a.start) < e && timeToMinutes(a.end) > s);
+      return solo ? `${sib.name} breaks off for ${solo.name}` : null;
+    })
+    .filter(Boolean);
+}
+
+function buildScheduleCard(a, person, opts = {}) {
+  const { selectable = false, chosen = false, suggest = false, splitNotes = [] } = opts;
   const el = document.createElement('div');
-  el.className = 'sched-block' + (selectable ? ' selectable' : '') + (selectable ? (chosen ? ' chosen' : ' skipped') : '');
-  const mine = a['s' + person]
-    ? `<span class="badge b${person}">${SIBLINGS[person - 1].name}</span>`
-    : `<span class="badge ${'b' + person}">${SIBLINGS[person - 1].name} <span class="maybe-note">(maybe)</span></span>`;
+  el.className = 'sched-block'
+    + (selectable ? ' selectable' : '')
+    + (selectable ? (chosen ? ' chosen' : ' skipped') : '')
+    + (suggest ? ' sched-suggest' : '');
+
+  const meta = suggest
+    ? SIBLINGS.filter(sib => a['s' + sib.id]).map(sib => `<span class="badge b${sib.id}">${sib.name}</span>`).join(' ')
+    : ownerBadges(a, person);
+
+  const splitHtml = splitNotes.length
+    ? `<div class="sched-split-notes">${splitNotes.map(n => `<div class="sched-split-note">${escapeHtml(n)}</div>`).join('')}</div>`
+    : '';
+  const tagBtn = suggest ? `<button type="button" class="tag-along-btn" data-idx="${a._idx}">Tag along</button>` : '';
+
   el.innerHTML = `
     <div class="sched-time">${formatTime(a.start)} – ${formatTime(a.end)}</div>
     <div class="sched-main">
       <span class="sched-name">${escapeHtml(a.name)}</span>
-      <span class="sched-stage">${escapeHtml(a.stage || '')}</span>
+      <span class="sched-stage">${escapeHtml(a.stage || '')}${suggest ? ' · nothing of yours here' : ''}</span>
     </div>
-    <div class="sched-meta">${mine} ${togetherBadges(a, person)}</div>`;
+    <div class="sched-meta">${meta}</div>
+    ${tagBtn}
+    ${splitHtml}`;
   return el;
+}
+
+function buildPersonRows(day, person) {
+  const pool = artists
+    .map((a, i) => ({ ...a, _idx: i }))
+    .filter(a => a.day === day && (a['s' + person] || a['m' + person]) && a.start && a.end);
+
+  const rows = clusterArtists(pool).map(cluster => ({
+    kind: cluster.length > 1 ? 'conflict' : 'single',
+    cluster,
+    sortKey: Math.min(...cluster.map(a => timeToMinutes(a.start))),
+  }));
+
+  const others = [1, 2, 3].filter(id => id !== person);
+  const ownIntervals = pool.map(a => [timeToMinutes(a.start), timeToMinutes(a.end)]);
+  const overlapsOwn = (s, e) => ownIntervals.some(([os, oe]) => s < oe && e > os);
+  const suggestPool = artists
+    .map((a, i) => ({ ...a, _idx: i }))
+    .filter(a => a.day === day && a.start && a.end && !a['s' + person] && !a['m' + person] && others.some(id => a['s' + id]))
+    .filter(a => !overlapsOwn(timeToMinutes(a.start), timeToMinutes(a.end)));
+
+  clusterArtists(suggestPool).forEach(cluster => {
+    const winner = cluster.reduce((best, a) => confirmedCount(a) > confirmedCount(best) ? a : best, cluster[0]);
+    rows.push({ kind: 'suggest', cluster: [winner], sortKey: timeToMinutes(winner.start) });
+  });
+
+  rows.sort((a, b) => a.sortKey - b.sortKey);
+  return rows;
+}
+
+function buildTogetherRows(day) {
+  const pool = artists
+    .map((a, i) => ({ ...a, _idx: i }))
+    .filter(a => a.day === day && a.start && a.end && sharedConfirmedOnRow(a));
+
+  const rows = clusterArtists(pool).map(cluster => ({
+    kind: cluster.length > 1 ? 'conflict' : 'single',
+    cluster,
+    sortKey: Math.min(...cluster.map(a => timeToMinutes(a.start))),
+  }));
+  rows.sort((a, b) => a.sortKey - b.sortKey);
+  return rows;
+}
+
+function renderScheduleRows(daySection, rows, day, person) {
+  rows.forEach(row => {
+    if (row.kind === 'single') {
+      const a = row.cluster[0];
+      const splitNotes = person === 'together' ? findSplitters(day, a) : [];
+      daySection.appendChild(buildScheduleCard(a, person, { splitNotes }));
+      return;
+    }
+    if (row.kind === 'suggest') {
+      daySection.appendChild(buildScheduleCard(row.cluster[0], person, { suggest: true }));
+      return;
+    }
+    const chosen = pickForCluster(day, person, row.cluster);
+    const wrap = document.createElement('div');
+    wrap.className = 'sched-conflict';
+    const label = document.createElement('div');
+    label.className = 'sched-conflict-label';
+    label.textContent = 'Overlap — pick one';
+    wrap.appendChild(label);
+    [...row.cluster].sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start)).forEach(a => {
+      const isChosen = artistKey(a.name) === artistKey(chosen.name);
+      const splitNotes = (person === 'together' && isChosen) ? findSplitters(day, a) : [];
+      const card = buildScheduleCard(a, person, { selectable: true, chosen: isChosen, splitNotes });
+      card.addEventListener('click', () => setSchedulePick(day, person, row.cluster, a.name));
+      wrap.appendChild(card);
+    });
+    daySection.appendChild(wrap);
+  });
 }
 
 function renderSchedule() {
@@ -1133,10 +1294,8 @@ function renderSchedule() {
   let any = false;
 
   days.forEach(day => {
-    const pool = artists
-      .map((a, i) => ({ ...a, _idx: i }))
-      .filter(a => a.day === day && (a['s' + person] || a['m' + person]) && a.start && a.end);
-    if (!pool.length) return;
+    const rows = person === 'together' ? buildTogetherRows(day) : buildPersonRows(day, person);
+    if (!rows.length) return;
     any = true;
 
     const daySection = document.createElement('div');
@@ -1146,32 +1305,15 @@ function renderSchedule() {
     lbl.textContent = dayLabels[day];
     daySection.appendChild(lbl);
 
-    clusterArtists(pool).forEach(cluster => {
-      if (cluster.length === 1) {
-        daySection.appendChild(buildScheduleCard(cluster[0], person, false));
-        return;
-      }
-      const chosen = pickForCluster(day, person, cluster);
-      const wrap = document.createElement('div');
-      wrap.className = 'sched-conflict';
-      const label = document.createElement('div');
-      label.className = 'sched-conflict-label';
-      label.textContent = 'Overlap — pick one';
-      wrap.appendChild(label);
-      [...cluster].sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start)).forEach(a => {
-        const isChosen = artistKey(a.name) === artistKey(chosen.name);
-        const card = buildScheduleCard(a, person, true, isChosen);
-        card.addEventListener('click', () => setSchedulePick(day, person, cluster, a.name));
-        wrap.appendChild(card);
-      });
-      daySection.appendChild(wrap);
-    });
-
+    renderScheduleRows(daySection, rows, day, person);
     container.appendChild(daySection);
   });
 
   if (!any) {
-    container.innerHTML = `<p id="schedule-list-empty">No picks with set times yet for ${SIBLINGS[person - 1].name}${['fri','sat','sun'].includes(filter) ? ' on ' + dayLabels[filter] : ''}. Mark some artists Yes or Maybe in Lineup view first.</p>`;
+    const dayNote = ['fri', 'sat', 'sun'].includes(filter) ? ' on ' + dayLabels[filter] : '';
+    container.innerHTML = person === 'together'
+      ? `<p id="schedule-list-empty">No shared picks (2 or more of you) with set times yet${dayNote}.</p>`
+      : `<p id="schedule-list-empty">No picks with set times yet for ${SIBLINGS[person - 1].name}${dayNote}. Mark some artists Yes or Maybe in Lineup view first.</p>`;
   }
 }
 
@@ -1187,7 +1329,8 @@ function applyViewMode() {
   document.getElementById('who-bar').style.display = isSchedule ? 'none' : 'flex';
   document.getElementById('add-section').classList.toggle('show', !isSchedule && editMode);
   document.querySelectorAll('#schedule-person-bar .who-btn[data-user]').forEach(btn => {
-    btn.classList.toggle('active', Number(btn.dataset.user) === schedulePerson);
+    const val = btn.dataset.user === 'together' ? 'together' : Number(btn.dataset.user);
+    btn.classList.toggle('active', val === schedulePerson);
   });
   if (isSchedule) renderSchedule(); else renderCurrent();
 }
@@ -1618,9 +1761,10 @@ document.getElementById('view-toggle').addEventListener('click', e => {
 document.getElementById('schedule-person-bar').addEventListener('click', e => {
   const btn = e.target.closest('.who-btn[data-user]');
   if (!btn) return;
-  schedulePerson = Number(btn.dataset.user);
+  schedulePerson = btn.dataset.user === 'together' ? 'together' : Number(btn.dataset.user);
   document.querySelectorAll('#schedule-person-bar .who-btn[data-user]').forEach(b => {
-    b.classList.toggle('active', Number(b.dataset.user) === schedulePerson);
+    const val = b.dataset.user === 'together' ? 'together' : Number(b.dataset.user);
+    b.classList.toggle('active', val === schedulePerson);
   });
   renderSchedule();
 });
@@ -1630,9 +1774,19 @@ document.getElementById('schedule-reset').addEventListener('click', () => {
   const days = ['fri', 'sat', 'sun'].includes(filter) ? [filter] : ['fri', 'sat', 'sun'];
   Object.keys(schedulePicks).forEach(k => {
     const [day, person] = k.split('|');
-    if (days.includes(day) && Number(person) === schedulePerson) delete schedulePicks[k];
+    if (days.includes(day) && person === String(schedulePerson)) delete schedulePicks[k];
   });
   saveSchedulePicks();
+  renderSchedule();
+});
+
+document.getElementById('schedule-list').addEventListener('click', e => {
+  const btn = e.target.closest('.tag-along-btn');
+  if (!btn || schedulePerson === 'together') return;
+  const idx = Number(btn.dataset.idx);
+  if (!Number.isInteger(idx) || !artists[idx]) return;
+  artists[idx]['m' + schedulePerson] = true;
+  markDirty();
   renderSchedule();
 });
 
