@@ -750,6 +750,149 @@
     color: var(--triple-text);
   }
 
+  .tri-grid { display: flex; flex-direction: column; gap: 2rem; }
+
+  .tri-day-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tri-lanes-wrap { display: flex; }
+
+  .tri-axis { width: 44px; flex-shrink: 0; position: relative; }
+
+  .tri-axis-label {
+    position: absolute;
+    right: 8px;
+    transform: translateY(-50%);
+    font-size: 0.62rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .tri-lanes { display: flex; flex: 1; gap: 6px; min-width: 0; }
+
+  .tri-lane { flex: 1 1 0; min-width: 0; position: relative; }
+
+  .tri-lane-header {
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.78rem;
+    padding-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+  }
+
+  .tri-lane[data-person="1"] .tri-lane-header { color: var(--s1-text); }
+  .tri-lane[data-person="2"] .tri-lane-header { color: var(--s2-text); }
+  .tri-lane[data-person="3"] .tri-lane-header { color: var(--s3-text); }
+
+  .tri-lane-body {
+    position: relative;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.015);
+    border: 1px solid var(--border);
+  }
+
+  .tri-hour-line {
+    position: absolute;
+    left: 0; right: 0;
+    border-top: 1px dashed var(--border);
+    pointer-events: none;
+  }
+
+  .tri-block {
+    position: absolute;
+    left: 3px; right: 3px;
+    border-radius: 6px;
+    padding: 4px 6px;
+    font-size: 0.68rem;
+    line-height: 1.25;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    cursor: default;
+  }
+
+  .tri-block.has-alts { cursor: pointer; touch-action: manipulation; }
+  .tri-block.maybe { opacity: 0.68; border-style: dashed; }
+  .tri-block.together { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(216,95,132,0.3); }
+
+  .tri-block-name {
+    display: block;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tri-block-time {
+    display: block;
+    font-size: 0.6rem;
+    color: var(--muted);
+  }
+
+  .tri-picker {
+    position: absolute;
+    left: 3px; right: 3px;
+    z-index: 5;
+    background: var(--surface2);
+    border: 1px solid var(--overlap-border);
+    border-radius: 8px;
+    padding: 6px;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+  }
+
+  .tri-picker-label {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--overlap-text);
+    margin-bottom: 4px;
+  }
+
+  .tri-picker-option {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 5px 6px;
+    margin-bottom: 3px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.03);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.68rem;
+    cursor: pointer;
+  }
+
+  .tri-picker-option.is-current { border-color: var(--overlap-border); background: rgba(155,75,181,0.15); }
+  .tri-picker-option:last-child { margin-bottom: 0; }
+
+  .tri-legend {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+
+  @media (max-width: 600px) {
+    .tri-axis { width: 34px; }
+    .tri-axis-label { font-size: 0.55rem; right: 4px; }
+    .tri-lane-header { font-size: 0.68rem; }
+    .tri-block { font-size: 0.6rem; padding: 3px 4px; }
+    .tri-block-time { font-size: 0.54rem; }
+  }
+
   .sched-block.sched-suggest {
     border-style: dashed;
     background: rgba(255,255,255,0.02);
@@ -886,7 +1029,10 @@
   <div id="list"></div>
   <p id="no-results" role="status">No results.</p>
 
-  <div id="schedule-list" style="display:none"></div>
+  <div id="schedule-view" style="display:none">
+    <div id="schedule-list"></div>
+    <div id="schedule-grid" style="display:none"></div>
+  </div>
 </div>
 
 <div class="save-banner" id="save-banner" role="status">
@@ -1153,13 +1299,6 @@ function setSchedulePick(day, person, cluster, chosenName) {
 }
 
 function ownerBadges(a, person) {
-  if (person === 'together') {
-    return SIBLINGS.map(sib => {
-      if (a['s' + sib.id]) return `<span class="badge b${sib.id}">${sib.name}</span>`;
-      if (a['m' + sib.id]) return `<span class="badge b${sib.id}">${sib.name} <span class="maybe-note">(maybe)</span></span>`;
-      return '';
-    }).join(' ');
-  }
   const mine = a['s' + person]
     ? `<span class="badge b${person}">${SIBLINGS[person - 1].name}</span>`
     : `<span class="badge b${person}">${SIBLINGS[person - 1].name} <span class="maybe-note">(maybe)</span></span>`;
@@ -1170,23 +1309,9 @@ function ownerBadges(a, person) {
   return `${mine} ${others}`;
 }
 
-function findSplitters(day, winner) {
-  const s = timeToMinutes(winner.start), e = timeToMinutes(winner.end);
-  const exclude = artistKey(winner.name);
-  return SIBLINGS
-    .filter(sib => !winner['s' + sib.id] && !winner['m' + sib.id])
-    .map(sib => {
-      const solo = artists.find(a => a.day === day && a.start && a.end && a['s' + sib.id]
-        && artistKey(a.name) !== exclude
-        && timeToMinutes(a.start) < e && timeToMinutes(a.end) > s);
-      return solo ? `${sib.name} breaks off for ${solo.name}` : null;
-    })
-    .filter(Boolean);
-}
-
 function buildScheduleCard(a, person, opts = {}) {
-  const { selectable = false, chosen = false, suggest = false, splitNotes = [] } = opts;
-  const isMaybeMine = person !== 'together' && !!a['m' + person] && !a['s' + person];
+  const { selectable = false, chosen = false, suggest = false } = opts;
+  const isMaybeMine = !!a['m' + person] && !a['s' + person];
   const showToggle = suggest || isMaybeMine;
 
   const el = document.createElement('div');
@@ -1199,9 +1324,6 @@ function buildScheduleCard(a, person, opts = {}) {
     ? SIBLINGS.filter(sib => a['s' + sib.id]).map(sib => `<span class="badge b${sib.id}">${sib.name}</span>`).join(' ')
     : ownerBadges(a, person);
 
-  const splitHtml = splitNotes.length
-    ? `<div class="sched-split-notes">${splitNotes.map(n => `<div class="sched-split-note">${escapeHtml(n)}</div>`).join('')}</div>`
-    : '';
   const toggleBtn = showToggle
     ? `<button type="button" class="tag-along-btn">${suggest ? 'Tag along' : 'Remove'}</button>`
     : '';
@@ -1213,15 +1335,14 @@ function buildScheduleCard(a, person, opts = {}) {
       <span class="sched-stage">${escapeHtml(a.stage || '')}${suggest ? ' · nothing of yours here' : ''}</span>
     </div>
     <div class="sched-meta">${meta}</div>
-    ${toggleBtn}
-    ${splitHtml}`;
+    ${toggleBtn}`;
 
   if (showToggle) {
     el.querySelector('.tag-along-btn').addEventListener('click', e => {
       e.stopPropagation();
-      if (schedulePerson === 'together' || !artists[a._idx]) return;
-      artists[a._idx]['m' + schedulePerson] = suggest;
-      markDirty();
+      if (!artists[a._idx]) return;
+      artists[a._idx]['m' + person] = suggest;
+      saveToStorage();
       renderSchedule();
     });
   }
@@ -1257,26 +1378,10 @@ function buildPersonRows(day, person) {
   return rows;
 }
 
-function buildTogetherRows(day) {
-  const pool = artists
-    .map((a, i) => ({ ...a, _idx: i }))
-    .filter(a => a.day === day && a.start && a.end && sharedConfirmedOnRow(a));
-
-  const rows = clusterArtists(pool).map(cluster => ({
-    kind: cluster.length > 1 ? 'conflict' : 'single',
-    cluster,
-    sortKey: Math.min(...cluster.map(a => timeToMinutes(a.start))),
-  }));
-  rows.sort((a, b) => a.sortKey - b.sortKey);
-  return rows;
-}
-
 function renderScheduleRows(daySection, rows, day, person) {
   rows.forEach(row => {
     if (row.kind === 'single') {
-      const a = row.cluster[0];
-      const splitNotes = person === 'together' ? findSplitters(day, a) : [];
-      daySection.appendChild(buildScheduleCard(a, person, { splitNotes }));
+      daySection.appendChild(buildScheduleCard(row.cluster[0], person, {}));
       return;
     }
     if (row.kind === 'suggest') {
@@ -1292,8 +1397,7 @@ function renderScheduleRows(daySection, rows, day, person) {
     wrap.appendChild(label);
     [...row.cluster].sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start)).forEach(a => {
       const isChosen = artistKey(a.name) === artistKey(chosen.name);
-      const splitNotes = (person === 'together' && isChosen) ? findSplitters(day, a) : [];
-      const card = buildScheduleCard(a, person, { selectable: true, chosen: isChosen, splitNotes });
+      const card = buildScheduleCard(a, person, { selectable: true, chosen: isChosen });
       card.addEventListener('click', () => setSchedulePick(day, person, row.cluster, a.name));
       wrap.appendChild(card);
     });
@@ -1301,7 +1405,7 @@ function renderScheduleRows(daySection, rows, day, person) {
   });
 }
 
-function renderSchedule() {
+function renderScheduleList() {
   const container = document.getElementById('schedule-list');
   container.innerHTML = '';
   const filter = activeFilter();
@@ -1310,7 +1414,7 @@ function renderSchedule() {
   let any = false;
 
   days.forEach(day => {
-    const rows = person === 'together' ? buildTogetherRows(day) : buildPersonRows(day, person);
+    const rows = buildPersonRows(day, person);
     if (!rows.length) return;
     any = true;
 
@@ -1327,17 +1431,204 @@ function renderSchedule() {
 
   if (!any) {
     const dayNote = ['fri', 'sat', 'sun'].includes(filter) ? ' on ' + dayLabels[filter] : '';
-    container.innerHTML = person === 'together'
-      ? `<p id="schedule-list-empty">No shared picks (2 or more of you) with set times yet${dayNote}.</p>`
-      : `<p id="schedule-list-empty">No picks with set times yet for ${SIBLINGS[person - 1].name}${dayNote}. Mark some artists Yes or Maybe in Lineup view first.</p>`;
+    container.innerHTML = `<p id="schedule-list-empty">No picks with set times yet for ${SIBLINGS[person - 1].name}${dayNote}. Mark some artists Yes or Maybe in Lineup view first.</p>`;
   }
+}
+
+let openTriPicker = null;
+
+function computeDayRange(day) {
+  const times = DEFAULT_ARTISTS
+    .filter(a => a.day === day && a.start && a.end)
+    .flatMap(a => [timeToMinutes(a.start), timeToMinutes(a.end)]);
+  if (!times.length) return null;
+  return {
+    minStart: Math.floor(Math.min(...times) / 60) * 60,
+    maxEnd: Math.ceil(Math.max(...times) / 60) * 60,
+  };
+}
+
+function minutesToHHMM(m) {
+  const h = Math.floor(m / 60), mm = m % 60;
+  return `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+}
+
+function buildLaneRows(day, person) {
+  return buildPersonRows(day, person).filter(row => row.kind !== 'suggest');
+}
+
+function triBlocksForLane(day, person, pxPerMin, minStart) {
+  return buildLaneRows(day, person).map(row => {
+    const chosen = row.cluster.length > 1 ? pickForCluster(day, person, row.cluster) : row.cluster[0];
+    return {
+      row,
+      chosen,
+      top: (timeToMinutes(chosen.start) - minStart) * pxPerMin,
+      height: Math.max(18, (timeToMinutes(chosen.end) - timeToMinutes(chosen.start)) * pxPerMin),
+    };
+  });
+}
+
+function isTogetherBlock(person, chosen, laneBlocksByPerson) {
+  const s = timeToMinutes(chosen.start), e = timeToMinutes(chosen.end);
+  const key = artistKey(chosen.name);
+  return [1, 2, 3].some(otherId => otherId !== person && laneBlocksByPerson[otherId].some(b =>
+    artistKey(b.chosen.name) === key && timeToMinutes(b.chosen.start) < e && timeToMinutes(b.chosen.end) > s
+  ));
+}
+
+function renderTriGrid() {
+  const container = document.getElementById('schedule-grid');
+  container.innerHTML = '';
+  const filter = activeFilter();
+  const days = ['fri', 'sat', 'sun'].includes(filter) ? [filter] : ['fri', 'sat', 'sun'];
+  const PX_PER_MIN = 1.3;
+  let any = false;
+
+  const wrapAll = document.createElement('div');
+  wrapAll.className = 'tri-grid';
+
+  days.forEach(day => {
+    const range = computeDayRange(day);
+    if (!range) return;
+    const { minStart, maxEnd } = range;
+
+    const laneBlocksByPerson = {};
+    [1, 2, 3].forEach(p => { laneBlocksByPerson[p] = triBlocksForLane(day, p, PX_PER_MIN, minStart); });
+    if (![1, 2, 3].some(p => laneBlocksByPerson[p].length)) return;
+    any = true;
+
+    const daySection = document.createElement('div');
+    const lbl = document.createElement('div');
+    lbl.className = 'tri-day-label';
+    lbl.textContent = dayLabels[day];
+    daySection.appendChild(lbl);
+
+    const lanesWrap = document.createElement('div');
+    lanesWrap.className = 'tri-lanes-wrap';
+    const bodyHeight = (maxEnd - minStart) * PX_PER_MIN;
+
+    const axis = document.createElement('div');
+    axis.className = 'tri-axis';
+    axis.style.height = bodyHeight + 'px';
+    for (let m = minStart; m <= maxEnd; m += 60) {
+      const lab = document.createElement('div');
+      lab.className = 'tri-axis-label';
+      lab.style.top = ((m - minStart) * PX_PER_MIN) + 'px';
+      lab.textContent = formatTime(minutesToHHMM(m));
+      axis.appendChild(lab);
+    }
+    lanesWrap.appendChild(axis);
+
+    const lanes = document.createElement('div');
+    lanes.className = 'tri-lanes';
+
+    [1, 2, 3].forEach(person => {
+      const lane = document.createElement('div');
+      lane.className = 'tri-lane';
+      lane.dataset.person = person;
+
+      const header = document.createElement('div');
+      header.className = 'tri-lane-header';
+      header.textContent = SIBLINGS[person - 1].name;
+      lane.appendChild(header);
+
+      const body = document.createElement('div');
+      body.className = 'tri-lane-body';
+      body.style.height = bodyHeight + 'px';
+
+      for (let m = minStart; m <= maxEnd; m += 60) {
+        const line = document.createElement('div');
+        line.className = 'tri-hour-line';
+        line.style.top = ((m - minStart) * PX_PER_MIN) + 'px';
+        body.appendChild(line);
+      }
+
+      laneBlocksByPerson[person].forEach(blk => {
+        const { row, chosen, top, height } = blk;
+        const hasAlts = row.kind === 'conflict';
+        const together = isTogetherBlock(person, chosen, laneBlocksByPerson);
+        const isMaybe = !chosen['s' + person];
+        const pKey = `${day}|${person}|${clusterKey(row.cluster)}`;
+
+        const el = document.createElement('div');
+        el.className = 'tri-block'
+          + (hasAlts ? ' has-alts' : '')
+          + (together ? ' together' : '')
+          + (isMaybe ? ' maybe' : '');
+        el.style.top = top + 'px';
+        el.style.height = height + 'px';
+        el.innerHTML = `<span class="tri-block-name">${escapeHtml(chosen.name)}</span><span class="tri-block-time">${formatTime(chosen.start)}–${formatTime(chosen.end)}</span>`;
+
+        if (hasAlts) {
+          el.addEventListener('click', () => {
+            openTriPicker = (openTriPicker && openTriPicker.key === pKey) ? null : { key: pKey };
+            renderTriGrid();
+          });
+        }
+        body.appendChild(el);
+
+        if (hasAlts && openTriPicker && openTriPicker.key === pKey) {
+          const picker = document.createElement('div');
+          picker.className = 'tri-picker';
+          picker.style.top = (top + height + 2) + 'px';
+          const label = document.createElement('div');
+          label.className = 'tri-picker-label';
+          label.textContent = 'Choose one';
+          picker.appendChild(label);
+          [...row.cluster].sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start)).forEach(cand => {
+            const optBtn = document.createElement('button');
+            optBtn.type = 'button';
+            optBtn.className = 'tri-picker-option' + (artistKey(cand.name) === artistKey(chosen.name) ? ' is-current' : '');
+            optBtn.textContent = `${formatTime(cand.start)}–${formatTime(cand.end)} ${cand.name}`;
+            optBtn.addEventListener('click', e => {
+              e.stopPropagation();
+              openTriPicker = null;
+              setSchedulePick(day, person, row.cluster, cand.name);
+            });
+            picker.appendChild(optBtn);
+          });
+          body.appendChild(picker);
+        }
+      });
+
+      lane.appendChild(body);
+      lanes.appendChild(lane);
+    });
+
+    lanesWrap.appendChild(lanes);
+    daySection.appendChild(lanesWrap);
+    wrapAll.appendChild(daySection);
+  });
+
+  if (!any) {
+    container.innerHTML = '<p id="schedule-list-empty">No picks with set times yet. Mark some artists Yes or Maybe in Lineup view first.</p>';
+    return;
+  }
+  container.appendChild(wrapAll);
+}
+
+function updateScheduleHint() {
+  const hint = document.getElementById('schedule-hint');
+  hint.textContent = schedulePerson === 'together'
+    ? 'Zach, Jonas & Zoe side by side. A highlighted block means 2+ of you are at the same artist. Tap a block with other options to reassign.'
+    : 'Auto-built from picks. When two picks overlap, tap the one you want — the other stays visible as a backup.';
+}
+
+function renderSchedule() {
+  updateScheduleHint();
+  const isGrid = schedulePerson === 'together';
+  document.getElementById('schedule-list').style.display = isGrid ? 'none' : 'block';
+  document.getElementById('schedule-grid').style.display = isGrid ? 'block' : 'none';
+  if (isGrid) renderTriGrid();
+  else renderScheduleList();
 }
 
 function applyViewMode() {
   const isSchedule = viewMode === 'schedule';
   document.getElementById('schedule-person-bar').classList.toggle('show', isSchedule);
   document.getElementById('schedule-controls').classList.toggle('show', isSchedule);
-  document.getElementById('schedule-list').style.display = isSchedule ? 'block' : 'none';
+  document.getElementById('schedule-view').style.display = isSchedule ? 'block' : 'none';
   document.getElementById('list').style.display = isSchedule ? 'none' : 'block';
   document.getElementById('no-results').style.display = isSchedule ? 'none' : document.getElementById('no-results').style.display;
   document.getElementById('list-options').style.display = isSchedule ? 'none' : 'flex';
@@ -1788,9 +2079,11 @@ document.getElementById('schedule-person-bar').addEventListener('click', e => {
 document.getElementById('schedule-reset').addEventListener('click', () => {
   const filter = activeFilter();
   const days = ['fri', 'sat', 'sun'].includes(filter) ? [filter] : ['fri', 'sat', 'sun'];
+  const persons = schedulePerson === 'together' ? ['1', '2', '3'] : [String(schedulePerson)];
+  openTriPicker = null;
   Object.keys(schedulePicks).forEach(k => {
     const [day, person] = k.split('|');
-    if (days.includes(day) && person === String(schedulePerson)) delete schedulePicks[k];
+    if (days.includes(day) && persons.includes(person)) delete schedulePicks[k];
   });
   saveSchedulePicks();
   renderSchedule();
