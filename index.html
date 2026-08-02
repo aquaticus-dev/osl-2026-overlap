@@ -1288,24 +1288,41 @@ function formatTime(t) {
   return `${h12}:${String(m).padStart(2, '0')}${ampm}`;
 }
 
+// Rough assumption, not a verified inter-stage walk time: on different stages,
+// anything closer together than this counts as a real conflict since there's
+// no time to get from one to the other.
+const TRANSFER_BUFFER_MIN = 15;
+
+function itemsConflict(a, b) {
+  const aS = timeToMinutes(a.start), aE = timeToMinutes(a.end);
+  const bS = timeToMinutes(b.start), bE = timeToMinutes(b.end);
+  if (aS < bE && bS < aE) return true;
+  if (a.stage && b.stage && a.stage !== b.stage) {
+    const gap = aS >= bE ? aS - bE : bS - aE;
+    if (gap >= 0 && gap < TRANSFER_BUFFER_MIN) return true;
+  }
+  return false;
+}
+
 function clusterArtists(list) {
-  const sorted = [...list].sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
-  const clusters = [];
-  let current = [];
-  let currentEnd = -Infinity;
-  sorted.forEach(a => {
-    const s = timeToMinutes(a.start), e = timeToMinutes(a.end);
-    if (current.length && s < currentEnd) {
-      current.push(a);
-      currentEnd = Math.max(currentEnd, e);
-    } else {
-      if (current.length) clusters.push(current);
-      current = [a];
-      currentEnd = e;
+  const items = [...list];
+  const parent = items.map((_, i) => i);
+  const find = x => { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; };
+  const union = (x, y) => { const rx = find(x), ry = find(y); if (rx !== ry) parent[rx] = ry; };
+  for (let i = 0; i < items.length; i++) {
+    for (let j = i + 1; j < items.length; j++) {
+      if (itemsConflict(items[i], items[j])) union(i, j);
     }
+  }
+  const groups = new Map();
+  items.forEach((item, i) => {
+    const root = find(i);
+    if (!groups.has(root)) groups.set(root, []);
+    groups.get(root).push(item);
   });
-  if (current.length) clusters.push(current);
-  return clusters;
+  return [...groups.values()]
+    .map(g => g.sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start)))
+    .sort((a, b) => timeToMinutes(a[0].start) - timeToMinutes(b[0].start));
 }
 
 const candidateScore = (a, person) => (a['s' + person] ? 20 : 10) + confirmedCount(a);
@@ -1394,12 +1411,11 @@ function buildPersonRows(day, person) {
   }));
 
   const others = [1, 2, 3].filter(id => id !== person);
-  const ownIntervals = pool.map(a => [timeToMinutes(a.start), timeToMinutes(a.end)]);
-  const overlapsOwn = (s, e) => ownIntervals.some(([os, oe]) => s < oe && e > os);
+  const conflictsWithOwn = candidate => pool.some(own => itemsConflict(candidate, own));
   const suggestPool = artists
     .map((a, i) => ({ ...a, _idx: i }))
     .filter(a => a.day === day && a.start && a.end && !a['s' + person] && !a['m' + person] && others.some(id => a['s' + id]))
-    .filter(a => !overlapsOwn(timeToMinutes(a.start), timeToMinutes(a.end)));
+    .filter(a => !conflictsWithOwn(a));
 
   clusterArtists(suggestPool).forEach(cluster => {
     const winner = cluster.reduce((best, a) => confirmedCount(a) > confirmedCount(best) ? a : best, cluster[0]);
