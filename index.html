@@ -1186,6 +1186,9 @@ function findSplitters(day, winner) {
 
 function buildScheduleCard(a, person, opts = {}) {
   const { selectable = false, chosen = false, suggest = false, splitNotes = [] } = opts;
+  const isMaybeMine = person !== 'together' && !!a['m' + person] && !a['s' + person];
+  const showToggle = suggest || isMaybeMine;
+
   const el = document.createElement('div');
   el.className = 'sched-block'
     + (selectable ? ' selectable' : '')
@@ -1199,7 +1202,9 @@ function buildScheduleCard(a, person, opts = {}) {
   const splitHtml = splitNotes.length
     ? `<div class="sched-split-notes">${splitNotes.map(n => `<div class="sched-split-note">${escapeHtml(n)}</div>`).join('')}</div>`
     : '';
-  const tagBtn = suggest ? `<button type="button" class="tag-along-btn" data-idx="${a._idx}">Tag along</button>` : '';
+  const toggleBtn = showToggle
+    ? `<button type="button" class="tag-along-btn">${suggest ? 'Tag along' : 'Remove'}</button>`
+    : '';
 
   el.innerHTML = `
     <div class="sched-time">${formatTime(a.start)} – ${formatTime(a.end)}</div>
@@ -1208,8 +1213,19 @@ function buildScheduleCard(a, person, opts = {}) {
       <span class="sched-stage">${escapeHtml(a.stage || '')}${suggest ? ' · nothing of yours here' : ''}</span>
     </div>
     <div class="sched-meta">${meta}</div>
-    ${tagBtn}
+    ${toggleBtn}
     ${splitHtml}`;
+
+  if (showToggle) {
+    el.querySelector('.tag-along-btn').addEventListener('click', e => {
+      e.stopPropagation();
+      if (schedulePerson === 'together' || !artists[a._idx]) return;
+      artists[a._idx]['m' + schedulePerson] = suggest;
+      markDirty();
+      renderSchedule();
+    });
+  }
+
   return el;
 }
 
@@ -1777,16 +1793,6 @@ document.getElementById('schedule-reset').addEventListener('click', () => {
     if (days.includes(day) && person === String(schedulePerson)) delete schedulePicks[k];
   });
   saveSchedulePicks();
-  renderSchedule();
-});
-
-document.getElementById('schedule-list').addEventListener('click', e => {
-  const btn = e.target.closest('.tag-along-btn');
-  if (!btn || schedulePerson === 'together') return;
-  const idx = Number(btn.dataset.idx);
-  if (!Number.isInteger(idx) || !artists[idx]) return;
-  artists[idx]['m' + schedulePerson] = true;
-  markDirty();
   renderSchedule();
 });
 
