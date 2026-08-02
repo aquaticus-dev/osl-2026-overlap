@@ -833,11 +833,41 @@
     text-overflow: ellipsis;
   }
 
+  .tri-block-stage {
+    display: block;
+    font-size: 0.6rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .tri-block-time {
     display: block;
     font-size: 0.6rem;
     color: var(--muted);
   }
+
+  .tri-gap {
+    position: absolute;
+    left: 3px; right: 3px;
+    font-size: 0.58rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.15;
+    padding: 1px;
+    border-left: 3px solid var(--border);
+    overflow: hidden;
+  }
+
+  .tri-gap.tight { border-left-color: #8a2020; color: #e05050; }
+  .tri-gap.ok { border-left-color: #8a6a20; color: #d8b45c; }
+  .tri-gap.loose { border-left-color: var(--border); color: var(--muted); }
 
   .tri-picker {
     position: absolute;
@@ -1312,7 +1342,9 @@ function ownerBadges(a, person) {
 function buildScheduleCard(a, person, opts = {}) {
   const { selectable = false, chosen = false, suggest = false } = opts;
   const isMaybeMine = !!a['m' + person] && !a['s' + person];
-  const showToggle = suggest || isMaybeMine;
+  // Inside a pick-one conflict, a card is purely select/deselect — no separate
+  // remove action, or picking an alternate could make an option vanish instead of just deselecting it.
+  const showToggle = !selectable && (suggest || isMaybeMine);
 
   const el = document.createElement('div');
   el.className = 'sched-block'
@@ -1453,6 +1485,14 @@ function minutesToHHMM(m) {
   return `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
 }
 
+// Rough tightness based on the gap alone — we don't have real inter-stage
+// walking times, so this flags "not much time" rather than asserting a distance.
+function gapTightnessClass(mins) {
+  if (mins < 10) return 'tight';
+  if (mins < 20) return 'ok';
+  return 'loose';
+}
+
 function buildLaneRows(day, person) {
   return buildPersonRows(day, person).filter(row => row.kind !== 'suggest');
 }
@@ -1558,7 +1598,7 @@ function renderTriGrid() {
           + (isMaybe ? ' maybe' : '');
         el.style.top = top + 'px';
         el.style.height = height + 'px';
-        el.innerHTML = `<span class="tri-block-name">${escapeHtml(chosen.name)}</span><span class="tri-block-time">${formatTime(chosen.start)}–${formatTime(chosen.end)}</span>`;
+        el.innerHTML = `<span class="tri-block-name">${escapeHtml(chosen.name)}</span><span class="tri-block-stage">${escapeHtml(chosen.stage || '')}</span><span class="tri-block-time">${formatTime(chosen.start)}–${formatTime(chosen.end)}</span>`;
 
         if (hasAlts) {
           el.addEventListener('click', () => {
@@ -1592,6 +1632,22 @@ function renderTriGrid() {
         }
       });
 
+      const laneBlocks = laneBlocksByPerson[person];
+      for (let i = 1; i < laneBlocks.length; i++) {
+        const prev = laneBlocks[i - 1], curr = laneBlocks[i];
+        if (!prev.chosen.stage || !curr.chosen.stage || prev.chosen.stage === curr.chosen.stage) continue;
+        const gapMin = Math.round(timeToMinutes(curr.chosen.start) - timeToMinutes(prev.chosen.end));
+        if (gapMin <= 0) continue;
+        const gapHeight = Math.max(4, gapMin * PX_PER_MIN);
+        const gapEl = document.createElement('div');
+        gapEl.className = 'tri-gap ' + gapTightnessClass(gapMin);
+        gapEl.style.top = (prev.top + prev.height) + 'px';
+        gapEl.style.height = gapHeight + 'px';
+        gapEl.title = `${gapMin} min between ${prev.chosen.stage} and ${curr.chosen.stage} — walk time not included`;
+        if (gapHeight >= 20) gapEl.textContent = `${gapMin}m → ${curr.chosen.stage}`;
+        body.appendChild(gapEl);
+      }
+
       lane.appendChild(body);
       lanes.appendChild(lane);
     });
@@ -1611,7 +1667,7 @@ function renderTriGrid() {
 function updateScheduleHint() {
   const hint = document.getElementById('schedule-hint');
   hint.textContent = schedulePerson === 'together'
-    ? 'Zach, Jonas & Zoe side by side. A highlighted block means 2+ of you are at the same artist. Tap a block with other options to reassign.'
+    ? 'Zach, Jonas & Zoe side by side. A highlighted block means 2+ of you are at the same artist. Tap a block with other options to reassign. Colored bars mark a stage change — red/yellow means less time between sets (this is just the schedule gap, not an actual walk time, so use your own judgment on distance).'
     : 'Auto-built from picks. When two picks overlap, tap the one you want — the other stays visible as a backup.';
 }
 
