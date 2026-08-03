@@ -1261,7 +1261,7 @@ const overlapFilters = { triple: false, two: false };
 let viewMode = 'lineup';
 let schedulePerson = 1;
 
-const SCHEDULE_KEY = 'osl2026-schedule-picks';
+const SCHEDULE_KEY = 'osl2026-schedule-picks-v2';
 const loadSchedulePicks = () => {
   try {
     const saved = localStorage.getItem(SCHEDULE_KEY);
@@ -1304,7 +1304,11 @@ function itemsConflict(a, b) {
   return false;
 }
 
-function clusterArtists(list) {
+// Groups mutually-conflicting items together (transitively) — good enough for
+// deduping "tag along" suggestions, but NOT for deciding a real schedule: a
+// chain A-conflicts-B-conflicts-C doesn't mean A and C conflict with each
+// other, so this must never be used to force a "pick only one of these" UI.
+function groupConflicting(list) {
   const items = [...list];
   const parent = items.map((_, i) => i);
   const find = x => { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; };
@@ -1320,27 +1324,66 @@ function clusterArtists(list) {
     if (!groups.has(root)) groups.set(root, []);
     groups.get(root).push(item);
   });
-  return [...groups.values()]
-    .map(g => g.sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start)))
-    .sort((a, b) => timeToMinutes(a[0].start) - timeToMinutes(b[0].start));
+  return [...groups.values()];
 }
 
 const candidateScore = (a, person) => (a['s' + person] ? 20 : 10) + confirmedCount(a);
-const clusterKey = cluster => cluster.map(a => artistKey(a.name)).sort().join('|');
 
-function pickForCluster(day, person, cluster) {
-  const key = `${day}|${person}|${clusterKey(cluster)}`;
-  const override = schedulePicks[key];
-  if (override) {
-    const match = cluster.find(a => artistKey(a.name) === override);
-    if (match) return match;
+// Classic weighted interval scheduling: picks the max-weight set of items
+// where no two chosen items conflict. `items` must be sorted by end time.
+function pickOptimalSet(items, weights) {
+  const n = items.length;
+  const prevCompatible = new Array(n).fill(-1);
+  for (let i = 0; i < n; i++) {
+    for (let j = i - 1; j >= 0; j--) {
+      if (!itemsConflict(items[j], items[i])) { prevCompatible[i] = j; break; }
+    }
   }
-  return cluster.reduce((best, a) => candidateScore(a, person) > candidateScore(best, person) ? a : best, cluster[0]);
+  const dp = new Array(n).fill(0);
+  const take = new Array(n).fill(false);
+  for (let i = 0; i < n; i++) {
+    const withItem = weights[i] + (prevCompatible[i] >= 0 ? dp[prevCompatible[i]] : 0);
+    const without = i > 0 ? dp[i - 1] : 0;
+    if (withItem > without) { dp[i] = withItem; take[i] = true; }
+    else { dp[i] = without; take[i] = false; }
+  }
+  const chosenIdx = new Set();
+  let i = n - 1;
+  while (i >= 0) {
+    if (take[i]) { chosenIdx.add(i); i = prevCompatible[i]; }
+    else i -= 1;
+  }
+  return chosenIdx;
 }
 
-function setSchedulePick(day, person, cluster, chosenName) {
-  const key = `${day}|${person}|${clusterKey(cluster)}`;
-  schedulePicks[key] = artistKey(chosenName);
+const PIN_BONUS = 1e6;
+const pinKeyFor = (day, person) => `${day}|${person}`;
+
+function getPinnedKeys(day, person) {
+  const raw = schedulePicks[pinKeyFor(day, person)];
+  return new Set(Array.isArray(raw) ? raw : []);
+}
+
+function personPool(day, person) {
+  return artists
+    .map((a, i) => ({ ...a, _idx: i }))
+    .filter(a => a.day === day && (a['s' + person] || a['m' + person]) && a.start && a.end);
+}
+
+// Pin an artist as this person's choice for its slot. Any existing pin that
+// directly conflicts with it is dropped so the schedule re-optimizes cleanly
+// around the new pin instead of leaving a stale, unreachable pin behind.
+function pinArtist(day, person, name) {
+  const pool = personPool(day, person);
+  const target = pool.find(a => artistKey(a.name) === artistKey(name));
+  if (!target) return;
+  const existing = getPinnedKeys(day, person);
+  const kept = [...existing].filter(k => {
+    const other = pool.find(a => artistKey(a.name) === k);
+    return other ? !itemsConflict(other, target) : true;
+  });
+  kept.push(artistKey(target.name));
+  schedulePicks[pinKeyFor(day, person)] = kept;
   saveSchedulePicks();
   renderSchedule();
 }
@@ -1399,26 +1442,45 @@ function buildScheduleCard(a, person, opts = {}) {
   return el;
 }
 
-function buildPersonRows(day, person) {
-  const pool = artists
-    .map((a, i) => ({ ...a, _idx: i }))
-    .filter(a => a.day === day && (a['s' + person] || a['m' + person]) && a.start && a.end);
+// Builds this person's actual day plan: an optimal (max-weight, non-conflicting)
+// set of their own picks, each with only its DIRECT competitors attached as
+// swappable alternatives — never the whole transitive chain of nearby overlaps.
+function buildPersonSchedule(day, person) {
+  const pool = personPool(day, person);
+  const sorted = [...pool].sort((a, b) => timeToMinutes(a.end) - timeToMinutes(b.end));
+  const pinned = getPinnedKeys(day, person);
+  const weights = sorted.map(a => candidateScore(a, person) + (pinned.has(artistKey(a.name)) ? PIN_BONUS : 0));
+  const chosenIdx = pickOptimalSet(sorted, weights);
 
-  const rows = clusterArtists(pool).map(cluster => ({
-    kind: cluster.length > 1 ? 'conflict' : 'single',
-    cluster,
-    sortKey: Math.min(...cluster.map(a => timeToMinutes(a.start))),
-  }));
+  const chosen = sorted.filter((_, i) => chosenIdx.has(i));
+  const excluded = sorted.filter((_, i) => !chosenIdx.has(i));
+
+  const altsByChosenKey = new Map(chosen.map(c => [artistKey(c.name), []]));
+  excluded.forEach(e => {
+    const hosts = chosen.filter(c => itemsConflict(e, c));
+    (hosts.length ? hosts : chosen.slice(0, 1)).forEach(host => {
+      altsByChosenKey.get(artistKey(host.name)).push(e);
+    });
+  });
+
+  const rows = chosen.map(c => {
+    const alts = altsByChosenKey.get(artistKey(c.name));
+    return {
+      kind: alts.length ? 'conflict' : 'single',
+      cluster: [c, ...alts],
+      sortKey: timeToMinutes(c.start),
+    };
+  });
 
   const others = [1, 2, 3].filter(id => id !== person);
-  const conflictsWithOwn = candidate => pool.some(own => itemsConflict(candidate, own));
+  const conflictsWithChosen = candidate => chosen.some(c => itemsConflict(candidate, c));
   const suggestPool = artists
     .map((a, i) => ({ ...a, _idx: i }))
     .filter(a => a.day === day && a.start && a.end && !a['s' + person] && !a['m' + person] && others.some(id => a['s' + id]))
-    .filter(a => !conflictsWithOwn(a));
+    .filter(a => !conflictsWithChosen(a));
 
-  clusterArtists(suggestPool).forEach(cluster => {
-    const winner = cluster.reduce((best, a) => confirmedCount(a) > confirmedCount(best) ? a : best, cluster[0]);
+  groupConflicting(suggestPool).forEach(group => {
+    const winner = group.reduce((best, a) => confirmedCount(a) > confirmedCount(best) ? a : best, group[0]);
     rows.push({ kind: 'suggest', cluster: [winner], sortKey: timeToMinutes(winner.start) });
   });
 
@@ -1436,7 +1498,7 @@ function renderScheduleRows(daySection, rows, day, person) {
       daySection.appendChild(buildScheduleCard(row.cluster[0], person, { suggest: true }));
       return;
     }
-    const chosen = pickForCluster(day, person, row.cluster);
+    const chosen = row.cluster[0];
     const wrap = document.createElement('div');
     wrap.className = 'sched-conflict';
     const label = document.createElement('div');
@@ -1446,7 +1508,7 @@ function renderScheduleRows(daySection, rows, day, person) {
     [...row.cluster].sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start)).forEach(a => {
       const isChosen = artistKey(a.name) === artistKey(chosen.name);
       const card = buildScheduleCard(a, person, { selectable: true, chosen: isChosen });
-      card.addEventListener('click', () => setSchedulePick(day, person, row.cluster, a.name));
+      card.addEventListener('click', () => pinArtist(day, person, a.name));
       wrap.appendChild(card);
     });
     daySection.appendChild(wrap);
@@ -1462,7 +1524,7 @@ function renderScheduleList() {
   let any = false;
 
   days.forEach(day => {
-    const rows = buildPersonRows(day, person);
+    const rows = buildPersonSchedule(day, person);
     if (!rows.length) return;
     any = true;
 
@@ -1510,12 +1572,12 @@ function gapTightnessClass(mins) {
 }
 
 function buildLaneRows(day, person) {
-  return buildPersonRows(day, person).filter(row => row.kind !== 'suggest');
+  return buildPersonSchedule(day, person).filter(row => row.kind !== 'suggest');
 }
 
 function triBlocksForLane(day, person, pxPerMin, minStart) {
   return buildLaneRows(day, person).map(row => {
-    const chosen = row.cluster.length > 1 ? pickForCluster(day, person, row.cluster) : row.cluster[0];
+    const chosen = row.cluster[0];
     return {
       row,
       chosen,
@@ -1605,7 +1667,7 @@ function renderTriGrid() {
         const hasAlts = row.kind === 'conflict';
         const together = isTogetherBlock(person, chosen, laneBlocksByPerson);
         const isMaybe = !chosen['s' + person];
-        const pKey = `${day}|${person}|${clusterKey(row.cluster)}`;
+        const pKey = `${day}|${person}|${artistKey(row.cluster[0].name)}`;
 
         const el = document.createElement('div');
         el.className = 'tri-block'
@@ -1640,7 +1702,7 @@ function renderTriGrid() {
             optBtn.addEventListener('click', e => {
               e.stopPropagation();
               openTriPicker = null;
-              setSchedulePick(day, person, row.cluster, cand.name);
+              pinArtist(day, person, cand.name);
             });
             picker.appendChild(optBtn);
           });
@@ -2151,12 +2213,9 @@ document.getElementById('schedule-person-bar').addEventListener('click', e => {
 document.getElementById('schedule-reset').addEventListener('click', () => {
   const filter = activeFilter();
   const days = ['fri', 'sat', 'sun'].includes(filter) ? [filter] : ['fri', 'sat', 'sun'];
-  const persons = schedulePerson === 'together' ? ['1', '2', '3'] : [String(schedulePerson)];
+  const persons = schedulePerson === 'together' ? [1, 2, 3] : [schedulePerson];
   openTriPicker = null;
-  Object.keys(schedulePicks).forEach(k => {
-    const [day, person] = k.split('|');
-    if (days.includes(day) && persons.includes(person)) delete schedulePicks[k];
-  });
+  days.forEach(day => persons.forEach(p => { delete schedulePicks[pinKeyFor(day, p)]; }));
   saveSchedulePicks();
   renderSchedule();
 });
